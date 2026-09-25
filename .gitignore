@@ -7,3 +7,8 @@ __pycache__/
 *.db
 uploads/
 .DS_Store
+
+# Frontend (React + Vite)
+node_modules/
+dist/
+*.log
