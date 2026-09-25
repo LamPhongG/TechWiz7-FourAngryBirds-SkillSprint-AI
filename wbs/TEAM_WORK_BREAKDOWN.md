@@ -46,7 +46,7 @@
 | Giờ | Công việc | File / Thư mục | Tiêu chí hoàn thành |
 | :---: | :--- | :--- | :--- |
 | 0h – 2h | Dựng khung FastAPI: `main.py`, cấu hình CORS, health check endpoint `/ping` | `main.py` | Server khởi động, `/ping` trả `{"status": "ok"}` |
-| 2h – 5h | Khai báo Pydantic Schemas: `OnboardingPlan`, `Module`, `Task`, `Quiz`, `DocumentChunk` | `src/schemas/models.py` | Swagger UI `/docs` hiển thị đầy đủ 5+ schema |
+| 2h – 5h | Khai báo Pydantic Schemas: `OnboardingPlan`, `Module`, `Task`, `Quiz`, `DocumentChunk` | `src/schemas/models.py` | Swagger UI `/document_processing`, `/document_validation` hiển thị đầy đủ 5+ schema |
 | 5h – 8h | Viết API endpoint nhận upload file, gọi module TV1 để lấy chunks | `src/schemas/requests.py` | Endpoint `/upload` nhận file và trả về chunk list |
 | 8h – 10h | Test toàn bộ API + commit lên nhánh `feat/python-rule-engine` | Git | Swagger UI hoàn chỉnh, không lỗi |
 
@@ -67,9 +67,9 @@
 
 | Giờ | Công việc | File / Thư mục | Tiêu chí hoàn thành |
 | :---: | :--- | :--- | :--- |
-| 0h – 6h | Soạn 10 tài liệu chính sách mẫu thực tế (PDF/DOCX) đa dạng lĩnh vực: HR Policy, IT Security, Finance Compliance, Onboarding Guide... | `sample_documents/` | 10 file tài liệu, nội dung >1 trang/file, định dạng hợp lệ |
-| 6h – 9h | Lập bảng `Role Requirement Matrix` cho 10 chức danh: Software Engineer, HR Manager, Accountant, IT Admin, Sales Executive, QA Engineer, Project Manager, Marketing Specialist, Legal Advisor, Data Analyst | `src/role_matrix/role_matrix.csv` | CSV/JSON có đủ 10 roles × các trường yêu cầu bắt buộc |
-| 9h – 10h | Commit lên nhánh `docs/test-and-reports`, cập nhật nhật ký | Git | Commit rõ ràng |
+| 0h – 6h | Soạn 10 tài liệu đầu tiên (DOC-01→DOC-10) đúng theo title/category/department đã định nghĩa sẵn trong `frontend/src/data/company.js` (công ty giả định **FourAngryBirds EdTech & HR Solutions**, PDF/DOCX, >1 trang/file, có Document ID, heading/section đánh số, version + effective date). Bắt buộc: DOC-02 là bản obsolete của DOC-01 (test version control – SRS Step 8); DOC-07 (SOP Customer Escalation) phải có đúng Section 4.2 khớp ví dụ Table 1 trong SRS | `sample_documents/` | 10 file thật, đúng công ty FourAngryBirds, đủ Document ID + section numbering; DOC-07 §4.2 khớp ví dụ SRS Table 1 |
+| 6h – 9h | Lập `role_matrix/role_matrix.csv` cho đúng 10 roles đã có trong `company.js` (Sales Executive, Customer Support Executive, HR Executive, Finance Associate, Operations Coordinator, Marketing Executive, Software Support Engineer, Branch Manager, Data Analyst, Team Leader/Tech Lead), đủ cột theo SRS Step 10: Role, Policy requirement, Process requirement, Competency, Mandatory/Optional, Priority, Source document, Source section, Assessment requirement. Requirement đầu tiên R001 phải khớp đúng ví dụ Table 1 SRS (SOP-07 §4.2, Customer Support Executive, Mandatory, High) | `role_matrix/role_matrix.csv` | ≥ 80 dòng yêu cầu (≥ 8/role), mỗi role ≥ 3 mandatory, R001 khớp đúng SRS Table 1, mọi Source document/section trỏ đúng vào DOC-01→DOC-10 |
+| 9h – 10h | Tạo & push nhánh `docs/test-and-reports` (hiện chưa có trên remote), commit, cập nhật `AI_USAGE.md` | Git | Nhánh xuất hiện trên remote, 1 commit rõ ràng đúng phạm vi |
 
 ---
 
