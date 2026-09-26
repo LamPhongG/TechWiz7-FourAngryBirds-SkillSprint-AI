@@ -1,0 +1,62 @@
+WORKPLACE CONDUCT POLICY — FOURANGRYBIRDS EDTECH & HR SOLUTIONS JSC
+===================================================================
+
+Version 1.0 — Effective 2026-01-01
+
+1. Purpose
+----------
+
+This policy defines the standards of professional behavior expected from every employee,
+regardless of role or department.
+
+2. Professional Behavior Standards [MANDATORY — ALL ROLES]
+----------------------------------------------------------
+
+Employees must treat colleagues, customers, and partners with respect, communicate
+professionally in all channels, and avoid conduct that could damage the Company's
+reputation.
+
+3. Anti-Harassment & Anti-Discrimination [MANDATORY — Compliance]
+-----------------------------------------------------------------
+
+The Company prohibits harassment or discrimination based on gender, age, religion,
+disability, or any other protected characteristic. Violations must be reported to HR
+Executive immediately and are handled under Section 6 (Disciplinary Process).
+
+4. Dress Code
+-------------
+
+4.1 General Standard
+
+Business-casual attire is expected in all offices.
+
+4.2 Client-Facing Roles [ROLE-SPECIFIC: Sales Executive, Branch Manager]
+
+Sales Executive and Branch Manager roles must wear business-formal attire during client
+meetings and site visits.
+
+5. Conflict of Interest Disclosure [MANDATORY]
+----------------------------------------------
+
+Employees must disclose any outside business interest, family relationship with a vendor,
+or other potential conflict of interest to HR Executive within 10 business days of it
+arising.
+
+6. Disciplinary Process
+-----------------------
+
+Violations are handled in three stages: verbal warning, written warning, termination —
+proportional to severity. Security-related violations (e.g., data mishandling) escalate
+directly per Information Security Policy (DOC-06 §5), bypassing the verbal-warning stage.
+
+7. Exceptions [EXCEPTION]
+-------------------------
+
+Operations Coordinator staff conducting field visits to partner schools are exempt from
+the office dress code (Section 4.1) while on-site, but must still comply with Section 2
+(Professional Behavior Standards).
+
+8. Cross-References
+-------------------
+  - Security violation escalation: DOC-06 §5
+  - Data-related conflicts of interest: DOC-05
