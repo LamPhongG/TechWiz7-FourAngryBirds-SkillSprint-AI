@@ -3,6 +3,7 @@ import { Card, SectionHeader, Badge } from "../../components/UI";
 import { useLanguage } from "../../contexts/LanguageContext";
 import { useEnrollment } from "../../contexts/EnrollmentContext";
 import { useAuth } from "../../hooks/useAuth";
+import { backendEnabled } from "../../services/apiClient";
 import { ROLES as JOB_ROLES } from "../../data/company";
 import { useMyPaths } from "../../hooks/useMyPaths";
 import { bestAttempt, pathProgress, PASS_RATIO } from "../../utils/progress";
@@ -28,15 +29,18 @@ export default function Profile() {
           <dl className="meta-list">
             <dt><BriefcaseBusiness size={14} /> {t("role_position")}</dt><dd>{pick(job, "name")}</dd>
             <dt><Building2 size={14} /> {t("department")}</dt><dd>{tv(user.department)}</dd>
-            <dt><Mail size={14} /> Email</dt><dd>alex.morgan@fourangrybirds.vn</dd>
+            <dt><Mail size={14} /> Email</dt><dd>{user.email}</dd>
           </dl>
         </Card>
-        <Card>
-          <SectionHeader title={t("demo_position_title")} subtitle={t("demo_position_desc")} />
-          <select className="filter-select" style={{ width: "100%" }} value={user.role_id} onChange={e => setEmployeePosition(e.target.value)}>
-            {JOB_ROLES.map(r => <option key={r.id} value={r.id}>{pick(r, "name")} · {tv(r.department)}</option>)}
-          </select>
-        </Card>
+        {/* When backend is connected, position comes from DB; do not mutate demo position here */}
+        {!backendEnabled() && (
+          <Card>
+            <SectionHeader title={t("demo_position_title")} subtitle={t("demo_position_desc")} />
+            <select className="filter-select" style={{ width: "100%" }} value={user.role_id} onChange={e => setEmployeePosition(e.target.value)}>
+              {JOB_ROLES.map(r => <option key={r.id} value={r.id}>{pick(r, "name")} · {tv(r.department)}</option>)}
+            </select>
+          </Card>
+        )}
       </div>
 
       <Card style={{ marginBottom: 18 }}>

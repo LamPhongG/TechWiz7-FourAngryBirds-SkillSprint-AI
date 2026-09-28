@@ -14,7 +14,7 @@ export default function Documents() {
   const { activeDocuments: allActive, loading, getFile } = useDocuments();
   const { user } = useAuth();
   const myPaths = useMyPaths();
-  // Tài liệu chung toàn công ty, tài liệu của phòng ban mình, và tài liệu nguồn của các lộ trình được giao
+  // Company-wide documents, department-specific documents, and source materials from assigned learning paths
   const pathCodes = new Set(myPaths.flatMap(p => p.sources.map(s => s.code)));
   const activeDocuments = allActive.filter(d => d.category !== "Test Case"
     && (d.department === "Company-wide" || d.department === user.department || pathCodes.has(d.code)));

@@ -1,0 +1,59 @@
+services:
+  # 1. PostgreSQL Database
+  db:
+    image: postgres:16-alpine
+    container_name: skillsprint-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: skillsprint
+      POSTGRES_PASSWORD: skillsprint_password
+      POSTGRES_DB: skillsprint_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U skillsprint -d skillsprint_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # 2. FastAPI Backend Service (Auto-runs migrations, seeds 203 matrix rules, ingests 28 documents)
+  backend:
+    container_name: skillsprint-backend
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+psycopg://skillsprint:skillsprint_password@db:5432/skillsprint_db
+      JWT_SECRET: ${JWT_SECRET:-skillsprint-ai-production-jwt-secret-key-32chars}
+      ENVIRONMENT: production
+      CORS_ORIGINS: http://localhost:3000,http://127.0.0.1:3000,http://localhost:80,http://localhost
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.5-flash}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+    ports:
+      - "8000:8000"
+    volumes:
+      - document_storage:/app/backend/storage
+
+  # 3. React Frontend Service (Production Nginx Reverse-Proxy on port 3000)
+  frontend:
+    container_name: skillsprint-frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "3000:80"
+
+volumes:
+  postgres_data:
+  document_storage:

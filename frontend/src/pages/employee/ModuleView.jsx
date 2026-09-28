@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, BookOpen, CheckSquare, ClipboardCheck, Check, ExternalLink, Clock3, LockKeyhole, CircleCheck, CircleAlert, ArrowRight } from "../../components/Icons";
+import { ArrowLeft, BookOpen, CheckSquare, ClipboardCheck, Check, ExternalLink, Clock3, LockKeyhole, CircleCheck, CircleAlert, ArrowRight, Target } from "../../components/Icons";
 import { Card, Badge, Button, ProgressBar, EmptyState, Toast } from "../../components/UI";
 import Citation from "../../components/Citation";
 import { useLanguage } from "../../contexts/LanguageContext";
@@ -9,12 +9,12 @@ import { useDocuments, openStoredFile } from "../../contexts/DocumentsContext";
 import { useMyPaths } from "../../hooks/useMyPaths";
 import { moduleProgress, nextModule, PASS_RATIO, stageUnlocked } from "../../utils/progress";
 
-/** Học một học phần: đọc bài (kèm tài liệu gốc), làm nhiệm vụ, làm bài kiểm tra */
+/** Study a module: read lessons (with source document references), complete tasks, take quiz */
 export default function ModuleView() {
   const { id, moduleId } = useParams();
   const navigate = useNavigate();
   const { t, pick } = useLanguage();
-  const { enrollmentFor, markLessonRead, toggleTask, submitQuiz } = useEnrollment();
+  const { enrollmentFor, markLessonRead, toggleTask, submitQuiz, error } = useEnrollment();
   const { documents, getFile } = useDocuments();
   const [toast, setToast] = useState("");
   const path = useMyPaths().find(p => p.id === id);
@@ -50,6 +50,7 @@ export default function ModuleView() {
   return (
     <div>
       <button className="back-btn" onClick={back}><ArrowLeft size={16} /> {t("back_to_path")}</button>
+      {error && <div className="notice notice--danger" role="alert"><CircleAlert size={16} /><span>{t(error)}</span></div>}
       <div className="page-heading">
         <div>
           <span className="eyebrow">{t(`stage_${path.stages[stageIndex].key}`)}{module.doc_code ? ` · ${module.doc_code}` : ""}</span>
@@ -67,6 +68,13 @@ export default function ModuleView() {
         </div>
       )}
 
+      {module.learning_objectives?.length > 0 && (
+        <section className="learn-section">
+          <h2><Target size={18} /> {t("learning_objectives")}</h2>
+          <Card><ul className="objective-list">{module.learning_objectives.map((o, i) => <li key={i}>{o}</li>)}</ul></Card>
+        </section>
+      )}
+
       {module.lessons.length > 0 && (
         <section className="learn-section">
           <h2><BookOpen size={18} /> {t("lessons")} <span className="cell-sub">{mp.lessonsDone}/{module.lessons.length}</span></h2>
@@ -76,7 +84,7 @@ export default function ModuleView() {
               <Card key={l.id} className={`lesson-card ${read ? "is-read" : ""}`}>
                 <div className="card-title-row">
                   <div>
-                    <h3>{l.title || t("part_n", { n: i + 1 })}</h3>
+                    <h3>{pick(l, "title") || t("part_n", { n: i + 1 })}</h3>
                     <span className="cell-sub"><Clock3 size={11} /> {t("min_n", { n: l.minutes })}</span>
                   </div>
                   {read ? <Badge tone="green"><Check size={12} /> {t("lesson_read")}</Badge> : null}
@@ -104,8 +112,9 @@ export default function ModuleView() {
                 <div key={task.id} className="task-row">
                   <label className="checkbox">
                     <input type="checkbox" checked={done} onChange={() => toggleTask(path, task.id)} />
-                    <span style={{ textDecoration: done ? "line-through" : "none" }}>{task.title}</span>
+                    <span style={{ textDecoration: done ? "line-through" : "none" }}>{pick(task, "title")}</span>
                   </label>
+                  {task.completion_criteria && <p className="task-criteria"><b>{t("completion_criteria")}:</b> {pick(task, "completion_criteria")}</p>}
                   <span className="cell-sub">{task.source_reference.doc} · {task.source_reference.section}</span>
                 </div>
               );
@@ -133,15 +142,71 @@ function QuizBlock({ module, best, onSubmit }) {
   const { t, pick } = useLanguage();
   const [answers, setAnswers] = useState({});
   const [result, setResult] = useState(null);
+  const [sending, setSending] = useState(false);
   const allAnswered = module.quiz.every(q => answers[q.id] !== undefined);
+  // Backend mode grades quiz on server; network errors shown in page alert while keeping quiz state
+  const submit = async () => {
+    setSending(true);
+    try {
+      setResult(await onSubmit(answers));
+    } catch {
+      setResult(null);
+    } finally {
+      setSending(false);
+    }
+  };
 
   if (result) {
+    const scorePercent = result.total > 0 ? Math.round((result.score / result.total) * 100) : 0;
+    const isWeakArea = !result.passed || scorePercent < 70;
+
     return (
       <Card className={`quiz-result-card ${result.passed ? "is-pass" : "is-fail"}`}>
         <div className="card-title-row">
-          <h3>{t("quiz_score", { c: result.score, n: result.total })}</h3>
+          <h3>{t("quiz_score", { c: result.score, n: result.total })} ({scorePercent}%)</h3>
           <Badge tone={result.passed ? "green" : "red"}>{t(result.passed ? "quiz_passed" : "quiz_failed", { n: Math.round(PASS_RATIO * 100) })}</Badge>
         </div>
+
+        {isWeakArea ? (
+          <div style={{
+            margin: "12px 0 16px",
+            padding: "12px 14px",
+            background: "rgba(245, 158, 11, 0.08)",
+            border: "1px solid rgba(245, 158, 11, 0.3)",
+            borderRadius: "var(--radius-md, 8px)"
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 700, color: "#b45309", marginBottom: 6, fontSize: 13.5 }}>
+              <CircleAlert size={16} />
+              Weak-Area Detected · {scorePercent}%
+            </div>
+            <div style={{ fontSize: 13, color: "var(--muted)", lineHeight: 1.5 }}>
+              Quiz score is below the mastery threshold (≥ 70%). Follow the recommendations below to reinforce your knowledge:
+              <ul style={{ margin: "6px 0 0 18px", padding: 0 }}>
+                <li><strong>Review Theory:</strong> Re-read the lessons in this module before re-attempting.</li>
+                <li><strong>Verify Standards:</strong> Review the SOP citations and detailed explanations for any incorrect answers below.</li>
+                <li><strong>Retake Quiz:</strong> Click <em>"Retake Quiz"</em> below to improve your score and fulfill the module requirements.</li>
+              </ul>
+            </div>
+          </div>
+        ) : (
+          <div style={{
+            margin: "12px 0 16px",
+            padding: "10px 14px",
+            background: "rgba(16, 185, 129, 0.08)",
+            border: "1px solid rgba(16, 185, 129, 0.3)",
+            borderRadius: "var(--radius-md, 8px)",
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            color: "#065f46",
+            fontWeight: 600,
+            fontSize: 13
+          }}>
+            <CircleCheck size={16} style={{ color: "#10b981" }} />
+            Achieved mastery score ({scorePercent}%). Eligible for completion credit!
+          </div>
+        )}
+
         {module.quiz.map((q, i) => {
           const ok = answers[q.id] === q.answer;
           return (
@@ -151,7 +216,8 @@ function QuizBlock({ module, best, onSubmit }) {
                 {ok ? <CircleCheck size={12} /> : <CircleAlert size={12} />} {t("your_answer")}: {q.options[answers[q.id]]}
                 {!ok && <> · {t("correct_answer")}: <b>{q.options[q.answer]}</b></>}
               </span>
-              {/* Trích nguyên văn chỉ hiện sau khi nộp bài để không lộ đáp án */}
+              {q.explanation && <span className="cell-sub">{t("quiz_explanation")}: {q.explanation}</span>}
+              {/* Citation displayed after submission to avoid revealing answers */}
               <Citation reference={q.source_reference} compact verify={false} />
             </div>
           );
@@ -184,7 +250,7 @@ function QuizBlock({ module, best, onSubmit }) {
         </div>
       ))}
       <div className="review-actions">
-        <Button disabled={!allAnswered} onClick={() => setResult(onSubmit(answers))}>{t("finish_quiz")}</Button>
+        <Button disabled={!allAnswered || sending} onClick={submit}>{t("finish_quiz")}</Button>
       </div>
     </Card>
   );

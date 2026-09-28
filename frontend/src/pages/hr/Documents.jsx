@@ -6,7 +6,7 @@ import { ProcessingCell, ChunksModal } from "../../components/DocumentProcessing
 import { useLanguage } from "../../contexts/LanguageContext";
 import { useDocuments, openStoredFile } from "../../contexts/DocumentsContext";
 import { useAuth } from "../../hooks/useAuth";
-import { company, DOCUMENT_CATALOG, DOCUMENT_CATEGORIES, DEPARTMENTS, UPLOAD_RULES } from "../../data/company";
+import { ACCEPTED_EXTENSIONS, company, DOCUMENT_CATALOG, DOCUMENT_CATEGORIES, DEPARTMENTS, UPLOAD_RULES } from "../../data/company";
 import { buildDraft, findCatalogEntry, formatFileSize, hashFile, inspectContent, validateDraft } from "../../utils/documentValidation";
 import { formatLocalDate, todayISO } from "../../utils/helpers";
 
@@ -245,7 +245,7 @@ export default function AdminDocuments() {
   );
 }
 
-// Modal tải lên: chọn nhiều file → kiểm tra & chỉnh metadata → lưu các file hợp lệ
+// Upload modal: select multiple files -> inspect & adjust metadata -> save valid files
 function UploadModal({ onClose, onSaved }) {
   const { t, tv, locale } = useLanguage();
   const { user } = useAuth();
@@ -258,7 +258,7 @@ function UploadModal({ onClose, onSaved }) {
   const mounted = useRef(true);
   const today = todayISO();
 
-  // StrictMode (dev) unmount rồi mount lại component — phải bật lại cờ ở mỗi lần mount
+  // StrictMode (dev) unmounts and remounts component - reset mounted flag on each mount
   useEffect(() => {
     mounted.current = true;
     return () => { mounted.current = false; };
@@ -269,7 +269,7 @@ function UploadModal({ onClose, onSaved }) {
   const addFiles = (fileList) => {
     const newDrafts = Array.from(fileList).map(file => buildDraft(file, { today }));
     setDrafts(list => [...list, ...newDrafts]);
-    // Băm và đọc nội dung song song; kết quả điền vào từng dòng khi xong
+    // Hash and inspect content in parallel; fill row results upon completion
     newDrafts.forEach(async (draft) => {
       const [hash, contentIssues] = await Promise.all([
         hashFile(draft.file).catch(() => ""),
@@ -282,7 +282,7 @@ function UploadModal({ onClose, onSaved }) {
   const changeCode = (draft, value) => {
     const patch = { code: value };
     const entry = findCatalogEntry(value);
-    // Mã có trong danh mục → tự điền những ô còn trống
+    // Recognized catalog code -> auto-fill empty fields
     if (entry) {
       if (!draft.category) patch.category = entry.category;
       if (!draft.department) patch.department = entry.department;
@@ -313,7 +313,7 @@ function UploadModal({ onClose, onSaved }) {
     }
   };
 
-  // Đóng modal khi đang có file chưa lưu thì hỏi lại, tránh mất công nhập metadata
+  // Confirm when closing modal with unsaved files to prevent accidental work loss
   const requestClose = () => {
     if (saving) return;
     if (drafts.length && !window.confirm(t("discard_uploads"))) return;
@@ -351,7 +351,7 @@ function UploadModal({ onClose, onSaved }) {
           ref={inputRef}
           type="file"
           multiple
-          accept={UPLOAD_RULES.allowedExtensions.map(e => `.${e}`).join(",")}
+          accept={ACCEPTED_EXTENSIONS.map(e => `.${e}`).join(",")}
           onChange={e => { if (e.target.files?.length) addFiles(e.target.files); e.target.value = ""; }}
           style={{ display: "none" }}
         />

@@ -7,7 +7,7 @@ const goodPath = {
   published_to: { departments: ["Engineering"], roles: [] },
 };
 
-describe("sanitize — dữ liệu cũ/hỏng trong trình duyệt không được làm trắng trang", () => {
+describe("sanitize — stale/corrupted browser data does not cause a blank page", () => {
   it("keeps valid paths and fills optional arrays", () => {
     const [p] = sanitizePaths([goodPath]);
     expect(p.id).toBe("LP-1");

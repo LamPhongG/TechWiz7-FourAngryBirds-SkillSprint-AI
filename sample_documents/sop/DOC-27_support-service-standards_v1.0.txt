@@ -1,0 +1,106 @@
+Customer Support Service Standards & Knowledge Base
+FourAngryBirds EdTech & HR Solutions JSC
+Document ID: DOC-27
+Vietnamese title: Chuẩn dịch vụ chăm sóc khách hàng và cơ sở tri thức
+Category: SOP
+Department: Customer Support
+Version: 1.0
+Status: Active
+Effective date: 2026-09-01
+Owner: Head of Customer Support
+
+1. Purpose
+
+This document sets the service standards of the Customer Support team and explains how the support knowledge base is used and maintained. It works together with the escalation process of DOC-07, which decides when and to whom an issue is escalated. This document describes the daily work before and around escalation: intake, classification, replies, knowledge articles and quality review.
+
+2. Scope
+
+The standards apply to every Customer Support Executive at both offices and to every employee who answers a customer on behalf of Customer Support, for example during a shift handover or a peak period.
+
+3. Support Channels and Hours
+
+- Customers contact Customer Support by the support email address, the help button in the learning platform and the support phone line.
+- Issues reported by partner schools through the Operations Coordinator are entered as tickets by the Operations Coordinator (DOC-12 §6.4, DOC-23 §8).
+- Service hours follow the extended-hours exception for Customer Support in DOC-20 §3. Outside service hours, the help button shows the hours and the expected reply time.
+- Social media messages are not handled as support tickets. The reply invites the customer to use one of the channels above (DOC-21 §5.3).
+
+4. Ticket Intake and Classification [MANDATORY]
+
+Every customer contact becomes a ticket in the support system, even when it is solved during the first call. The ticket records the customer ID, the channel, the product area and the priority.
+
+4.1 Priority Levels
+
+- P1 Critical: the learning platform or a core function is unavailable for all customers, or customer data may be exposed. Customer Support contacts the Engineering on-call engineer at once (DOC-20 §4).
+- P2 High: a function is unavailable for one customer or one school, or a scheduled session cannot run.
+- P3 Normal: a function works with a problem that has a workaround.
+- P4 Low: a question, a request for information or a suggestion.
+
+4.2 Issues with a Safety, Legal or Financial Risk
+
+An issue that involves a safety, legal or financial risk is escalated to a Team Leader within 1 business hour of being identified, whatever its priority (DOC-07 §4.2, requirement R001).
+
+5. Response and Resolution Targets [MANDATORY]
+
+- Acknowledge every incoming issue within 2 business hours (DOC-07 §4.1). The acknowledgement states the ticket ID and what happens next.
+- Attempt first-contact resolution using the knowledge base (DOC-07 §4.1).
+- Escalate to a Team Leader any complaint that is unresolved after 24 hours (DOC-07 §4.2).
+- A Tier 2 escalation that stays unresolved after 48 hours goes to the Branch Manager (DOC-07 §4.3).
+- Target resolution times: P1 within 4 business hours, P2 within 1 business day, P3 within 3 business days, P4 within 5 business days.
+- Customers receive an update at least once per business day while a P1 or P2 ticket is open.
+
+6. Using the Knowledge Base
+
+- Before replying, the Customer Support Executive searches the knowledge base for the product area and the error message.
+- Replies based on an article include the article link so that the customer can use it again.
+- Only articles marked "Published" are sent to customers. Draft articles are for internal use.
+- When an article is wrong or out of date, the executive flags it in the knowledge base with a comment on what is wrong.
+
+7. Maintaining the Knowledge Base
+
+- A new article is written when the same question has been answered 3 times in a month and no article covers it.
+- Each article has an owner, a product area, the date of the last review and the platform version it applies to.
+- Articles are reviewed at least every 6 months, and within 5 business days after a release that changes the described function (DOC-10 §6).
+- Articles never contain customer names, account details or screenshots showing personal data.
+- A second Customer Support Executive reviews every new article before it is published.
+
+8. Writing to Customers
+
+- Use the reply templates in the support system and adapt them to the customer's question.
+- Write in the language the customer used, Vietnamese or English.
+- Give a clear next step and a time frame in every reply.
+- Do not promise refunds, compensation or service-level exceptions. These are decided by the Branch Manager at Tier 3 (DOC-07 §4.3).
+- Do not blame another team or the customer. Describe what happened and what is being done.
+
+9. Identity Checks and Personal Data [MANDATORY]
+
+- Before sharing or changing account information, confirm the caller's identity with two items already on file, such as the registered email address and the organisation name.
+- Never ask a customer for their password. Password resets are sent only to the registered email address (DOC-06 §2).
+- Customer personal data is handled only as allowed by DOC-05 §4 and DOC-06 §4. Screenshots sent by customers are attached to the ticket only, never forwarded by chat or personal email.
+- A request from a customer to see, correct or delete their personal data is passed to the Data Privacy Officer the same business day (DOC-05).
+- A suspected security incident reported by a customer, such as a phishing email using the Company name, is reported to IT Security within 1 hour (DOC-06 §5).
+
+10. Shift Handover
+
+At the end of each shift, the executive writes a handover note in the support system listing open P1 and P2 tickets, promised call-backs and escalations in progress. The incoming executive confirms the note before the outgoing executive leaves. A ticket is never left without an owner.
+
+11. Customer Satisfaction
+
+A short satisfaction survey is sent automatically when a ticket is closed. Scores and comments are reviewed weekly by the Team Leader. Comments that describe a problem are reopened as a new ticket when the customer agrees.
+
+12. Quality Review
+
+Every week the Team Leader reviews a sample of 5 closed tickets per Customer Support Executive. The review checks the acknowledgement time, the priority chosen, the use of the knowledge base, the tone of the replies and the escalation timing. Results are discussed in the weekly team meeting and feed the performance indicators of DOC-14 §5.4.
+
+13. Optional Practice [OPTIONAL]
+
+Customer Support Executives are encouraged to suggest one improvement to the knowledge base per month.
+
+14. Cross-References
+
+- Escalation tiers, triggers and documentation: DOC-07 §3–§5
+- Customer Support Executive role and training: DOC-14 §5
+- Extended service hours and Engineering on-call: DOC-20 §3, §4
+- Personal data handling and security incidents: DOC-05 §4, DOC-06 §2, §4, §5
+- Post-deployment issues: DOC-10 §6
+- Partner-school issues: DOC-12 §6.4, DOC-23 §8
+- Social media replies: DOC-21 §5.3

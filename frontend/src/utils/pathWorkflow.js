@@ -1,11 +1,11 @@
-// Vòng đời lộ trình và quyền thao tác theo vai trò.
+// Path lifecycle and role-based permissions.
 //
-//   HR tạo ──► draft ──(HR gửi duyệt)──► in_review ──(Reviewer duyệt)──► published ──► archived
-//                ▲                           │
-//                └──── changes_requested ◄───┘ (Reviewer yêu cầu sửa, kèm góp ý)
+//   HR creates ──► draft ──(HR submits)──► in_review ──(Reviewer approves)──► published ──► archived
+//                    ▲                           │
+//                    └──── changes_requested ◄───┘ (Reviewer requests changes with comments)
 //
-// HR sửa nội dung khi draft / changes_requested; Reviewer sửa trực tiếp khi in_review.
-// Nội dung đã phát hành chỉ đọc — muốn đổi thì thu hồi và tạo bản mới.
+// HR edits content during draft / changes_requested; Reviewer edits directly during in_review.
+// Published content is read-only — modifications require creating a new revision.
 import { MIN_REASON_LENGTH } from "./pathChecks";
 
 const ACTIONS = {
@@ -31,9 +31,9 @@ export function can(userRole, action, path) {
 }
 
 /**
- * Điều kiện để Reviewer duyệt và phát hành.
- * Nội dung sai kiến thức / có câu lệnh tấn công / lỗi cấu trúc thì không được phát hành dù có lý do —
- * Reviewer phải sửa trực tiếp hoặc trả về HR. Các cảnh báo khác cho phép duyệt nếu ghi lý do.
+ * Conditions for Reviewer approval and publication.
+ * Hallucinations, prompt injections, or structural flow errors strictly block publication —
+ * Reviewer must edit directly or request changes from HR. Other warnings permit approval with justification.
  */
 export function approvalRule(checks) {
   if (checks.blocking) return { allowed: false, reasonRequired: false };
@@ -44,7 +44,7 @@ export function validReason(text) {
   return (text || "").trim().length >= MIN_REASON_LENGTH;
 }
 
-/** Nhân viên thấy lộ trình khi đã phát hành cho phòng ban, cho "Toàn công ty", hoặc cho đúng vị trí của mình */
+/** Employee sees path when published to their department, "Company-wide", or their specific role */
 export function visibleToEmployee(path, user) {
   if (path.status !== "published" || !path.published_to || !user) return false;
   const { departments = [], roles = [] } = path.published_to;

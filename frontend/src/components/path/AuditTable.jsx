@@ -24,7 +24,7 @@ function describe(e, t) {
   return null;
 }
 
-/** Nhật ký thao tác: thời điểm, người, hành động, lộ trình, trạng thái trước/sau, kết quả kiểm định, lý do */
+/** Action log: timestamp, actor, action, path, status before/after, verification status, reason */
 export default function AuditTable({ entries, pathBasePath, showPath = true }) {
   const { t, locale } = useLanguage();
   if (entries.length === 0) return <p className="cell-sub" style={{ padding: 16, textAlign: "center" }}>{t("audit_empty")}</p>;
@@ -71,7 +71,7 @@ export default function AuditTable({ entries, pathBasePath, showPath = true }) {
   );
 }
 
-// Xuất CSV để nộp kèm báo cáo hoặc đối chiếu với bảng audit_logs của backend
+// Export CSV for report submission or cross-referencing with backend audit_logs table
 export function auditToCsv(entries) {
   const cols = ["id", "timestamp", "actor_id", "actor_name", "actor_role", "action", "path_id", "path_title", "revision", "status_before", "status_after", "final_status", "reason"];
   const esc = v => {

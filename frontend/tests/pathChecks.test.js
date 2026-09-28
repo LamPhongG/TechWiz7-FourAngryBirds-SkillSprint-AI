@@ -4,7 +4,7 @@ import { checkFlow, checkKnowledge, runPathChecks } from "../src/utils/pathCheck
 import { scanChunks } from "../src/utils/injectionScan";
 import { role, docs, chunksByDocId, deployment } from "./fixtures";
 
-// Như trong ứng dụng: chunk bị gắn cờ injection được loại trước khi sinh
+// As in the application: chunks flagged for injection are excluded before generation
 const flagsByDocId = { d10: scanChunks(deployment.chunks) };
 const build = () => ({
   id: "LP-T", purpose: "onboarding", target: { role_id: role.id },
@@ -18,7 +18,7 @@ function edit(path, fn) {
   return copy;
 }
 
-describe("checkKnowledge — đúng kiến thức", () => {
+describe("checkKnowledge — knowledge correctness", () => {
   it("verifies every generated item against the source", () => {
     expect(checkKnowledge(build(), ctx).every(k => k.status === "verified")).toBe(true);
   });
@@ -49,7 +49,7 @@ describe("checkKnowledge — đúng kiến thức", () => {
   });
 });
 
-describe("checkFlow — đúng luồng", () => {
+describe("checkFlow — workflow correctness", () => {
   it("accepts the generated order", () => {
     expect(checkFlow(build()).filter(f => f.severity === "error")).toEqual([]);
   });
@@ -78,7 +78,7 @@ describe("checkFlow — đúng luồng", () => {
   });
 });
 
-describe("runPathChecks — trạng thái cuối", () => {
+describe("runPathChecks — final status", () => {
   it("is not blocking for clean generated content", () => {
     const r = runPathChecks(build(), ctx);
     expect(r.blocking).toBe(false);
@@ -120,5 +120,19 @@ describe("runPathChecks — trạng thái cuối", () => {
     expect(low.reasons.map(x => x.key)).toContain("reason_low_coverage");
 
     expect(runPathChecks({ ...build(), coverage: { score: "bad" } }, ctx).coverage).toBeNull();
+  });
+
+  it("is verified only at 100% mandatory coverage, like the server (SRS 1.2)", () => {
+    const almost = runPathChecks({ ...build(), coverage: { score: 0.9, counts: { required: 10 } } }, ctx);
+    const reason = almost.reasons.find(x => x.key === "reason_medium_coverage");
+    expect(reason.vars).toEqual({ score: 90, min: 100 });
+    expect(almost.final_status).not.toBe("verified");
+  });
+
+  it("sends a role without mandatory requirements to manual review", () => {
+    const empty = runPathChecks({ ...build(), coverage: { score: null, counts: { required: 0 } } }, ctx);
+    expect(empty.reasons.map(x => x.key)).toContain("reason_matrix_empty");
+    expect(empty.reasons.map(x => x.key)).not.toContain("reason_coverage_pending");
+    expect(empty.final_status).toBe("manual_review");
   });
 });

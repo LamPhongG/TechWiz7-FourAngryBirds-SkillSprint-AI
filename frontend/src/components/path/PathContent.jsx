@@ -1,13 +1,13 @@
 import { useState } from "react";
-import { BookOpen, CheckSquare, ClipboardCheck, ChevronDown, Pencil, Trash2, MessageSquare, Clock3, CircleAlert } from "../Icons";
+import { BookOpen, CheckSquare, ClipboardCheck, ChevronDown, Pencil, Trash2, MessageSquare, Clock3, CircleAlert, Target } from "../Icons";
 import { Badge, Button } from "../UI";
 import ValidationTag from "../ValidationTag";
 import Citation from "../Citation";
 import { useLanguage } from "../../contexts/LanguageContext";
 import { usePaths, PathError } from "../../contexts/PathsContext";
-import { STAGE_TEMPLATES } from "../../data/company";
+import { stageTemplate } from "../../data/company";
 
-// Các phép sửa lộ trình (thuần, trả về bản mới)
+// Path mutation helpers (pure functions, returning new instance)
 
 function mapModule(path, moduleId, fn) {
   return { ...path, stages: path.stages.map(s => ({ ...s, modules: s.modules.map(m => (m.id === moduleId ? fn(m) : m)) })) };
@@ -15,21 +15,21 @@ function mapModule(path, moduleId, fn) {
 
 function moveModule(path, moduleId, toKey) {
   const module = path.stages.flatMap(s => s.modules).find(m => m.id === moduleId);
-  const template = STAGE_TEMPLATES[path.purpose] || STAGE_TEMPLATES.onboarding;
+  const template = stageTemplate(path.purpose, path.duration_days);
   let stages = path.stages.map(s => ({ ...s, modules: s.modules.filter(m => m.id !== moduleId) }));
   if (!stages.some(s => s.key === toKey)) {
     stages = [...stages, { key: toKey, modules: [] }].sort((a, b) => template.indexOf(a.key) - template.indexOf(b.key));
   }
   stages = stages.map(s => (s.key === toKey ? { ...s, modules: [...s.modules, module] } : s));
-  // Giai đoạn rỗng sau khi chuyển không còn ý nghĩa với nhân viên
+  // Empty stage after moving has no meaning for learners
   return { ...path, stages: stages.filter(s => s.modules.length) };
 }
 
 const KIND_FIELD = { lesson: "lessons", task: "tasks", quiz: "quiz" };
 
 /**
- * Nội dung lộ trình: giai đoạn → học phần → bài học / nhiệm vụ / câu hỏi.
- * editable = true thì cho sửa, xoá, chuyển học phần sang giai đoạn khác (mọi thay đổi ghi audit).
+ * Path content: stage -> module -> lesson / task / quiz.
+ * When editable = true, allows editing, deleting, moving modules to other stages (all audited).
  */
 export default function PathContent({ path, editable = false, statusByItem = {}, commentCounts = {}, onComment }) {
   const { t, pick } = useLanguage();
@@ -37,12 +37,14 @@ export default function PathContent({ path, editable = false, statusByItem = {},
   const [open, setOpen] = useState(() => new Set([path.stages[0]?.modules[0]?.id]));
   const [editing, setEditing] = useState(null);
   const [error, setError] = useState("");
-  const template = STAGE_TEMPLATES[path.purpose] || STAGE_TEMPLATES.onboarding;
+  // Only allow moving modules between stages within the HR-selected duration template
+  const template = stageTemplate(path.purpose, path.duration_days);
 
-  const apply = (mutate, details) => {
+  // Awaits both synchronous operations (browser mode) and API calls (backend mode)
+  const apply = async (mutate, details) => {
     setError("");
     try {
-      editPath(path.id, mutate, details);
+      await editPath(path.id, mutate, details);
       return true;
     } catch (e) {
       setError(e instanceof PathError ? t(e.key, e.vars) : e.message);
@@ -61,8 +63,11 @@ export default function PathContent({ path, editable = false, statusByItem = {},
     apply(p => mapModule(p, module.id, m => ({ ...m, [KIND_FIELD[kind]]: m[KIND_FIELD[kind]].filter(x => x.id !== item.id) })), { op: "delete", kind, item: item.id });
   };
 
-  const save = (module, kind, item, patch) => {
-    if (apply(p => mapModule(p, module.id, m => ({ ...m, [KIND_FIELD[kind]]: m[KIND_FIELD[kind]].map(x => (x.id === item.id ? { ...x, ...patch } : x)) })), { op: "update", kind, item: item.id })) {
+  const save = async (module, kind, item, patch) => {
+    // When updating title / criteria, clear legacy fields to maintain consistency
+    let change = kind !== "quiz" && "title" in patch ? { ...patch, titleEn: undefined } : patch;
+    if ("completion_criteria" in patch) change = { ...change, completion_criteriaEn: undefined };
+    if (await apply(p => mapModule(p, module.id, m => ({ ...m, [KIND_FIELD[kind]]: m[KIND_FIELD[kind]].map(x => (x.id === item.id ? { ...x, ...change } : x)) })), { op: "update", kind, item: item.id })) {
       setEditing(null);
     }
   };
@@ -104,7 +109,8 @@ export default function PathContent({ path, editable = false, statusByItem = {},
                     <strong>{mTitle}</strong>
                   </button>
                   <div className="module-card__meta">
-                    {module.doc_code && <Badge tone="default">{module.doc_code}</Badge>}
+                    {module.doc_code && <Badge tone="default">{module.doc_code}{module.source_sections?.length > 0 && ` · §${module.source_sections.join(", §")}`}</Badge>}
+                    {module.mandatory && <Badge tone="red">{t("module_mandatory")}</Badge>}
                     <span className="cell-sub">{t("module_summary", { l: module.lessons.length, t: module.tasks.length, q: module.quiz.length })}</span>
                     {onComment && (
                       <button className="icon-btn" title={t("action_comment")} aria-label={t("action_comment")} onClick={() => onComment({ id: module.id, label: mTitle })}>
@@ -122,14 +128,16 @@ export default function PathContent({ path, editable = false, statusByItem = {},
 
                 {isOpen && (
                   <div className="module-card__body">
+                    <ModuleBrief module={module} />
                     {module.lessons.length > 0 && <h4><BookOpen size={14} /> {t("lessons")} ({module.lessons.length})</h4>}
                     {module.lessons.map((l, i) => {
-                      const label = `${mTitle} › ${l.title || t("part_n", { n: i + 1 })}`;
+                      const lTitle = pick(l, "title") || t("part_n", { n: i + 1 });
+                      const label = `${mTitle} › ${lTitle}`;
                       return (
                         <div key={l.id} className="content-item">
                           <div className="content-item__row">
                             <div>
-                              <strong>{l.title || t("part_n", { n: i + 1 })}</strong>
+                              <strong>{lTitle}</strong>
                               <span className="cell-sub"><Clock3 size={11} /> {t("min_n", { n: l.minutes })}</span>
                             </div>
                             {itemActions(module, "lesson", l, label)}
@@ -151,12 +159,19 @@ export default function PathContent({ path, editable = false, statusByItem = {},
                     {module.tasks.map(task => (
                       <div key={task.id} className="content-item">
                         <div className="content-item__row">
-                          <strong className="task-text">{task.title}</strong>
-                          {itemActions(module, "task", task, `${mTitle} › ${task.title.slice(0, 60)}`)}
+                          <strong className="task-text">{pick(task, "title")}</strong>
+                          {itemActions(module, "task", task, `${mTitle} › ${pick(task, "title").slice(0, 60)}`)}
                         </div>
-                        {editing === task.id
-                          ? <TaskForm task={task} onCancel={() => setEditing(null)} onSave={patch => save(module, "task", task, patch)} />
-                          : <Citation reference={task.source_reference} compact verify={false} />}
+                        {editing === task.id ? (
+                          <TaskForm task={task} onCancel={() => setEditing(null)} onSave={patch => save(module, "task", task, patch)} />
+                        ) : (
+                          <>
+                            {task.completion_criteria
+                              ? <p className="task-criteria"><b>{t("completion_criteria")}:</b> {pick(task, "completion_criteria")}</p>
+                              : <p className="task-criteria text-danger"><CircleAlert size={12} /> {t("completion_criteria_missing")}</p>}
+                            <Citation reference={task.source_reference} compact verify={false} />
+                          </>
+                        )}
                       </div>
                     ))}
 
@@ -174,6 +189,7 @@ export default function PathContent({ path, editable = false, statusByItem = {},
                             <ol className="option-list" type="A">
                               {q.options.map((o, j) => <li key={j} className={j === q.answer ? "is-correct" : ""}>{o}</li>)}
                             </ol>
+                            {q.explanation && <p className="cell-sub">{t("quiz_explanation")}: {q.explanation}</p>}
                             <Citation reference={q.source_reference} compact verify={false} />
                           </>
                         )}
@@ -187,6 +203,27 @@ export default function PathContent({ path, editable = false, statusByItem = {},
           })}
         </section>
       ))}
+    </div>
+  );
+}
+
+/** Learning objectives and matrix requirements covered by module (attached per document section) */
+function ModuleBrief({ module }) {
+  const { t } = useLanguage();
+  const objectives = module.learning_objectives || [];
+  const reqs = module.requirement_ids || [];
+  if (!objectives.length && !reqs.length) return null;
+  return (
+    <div className="module-brief">
+      {objectives.length > 0 && (
+        <>
+          <h4><Target size={14} /> {t("learning_objectives")}</h4>
+          <ul>{objectives.map((o, i) => <li key={i}>{o}</li>)}</ul>
+        </>
+      )}
+      {reqs.length > 0 && (
+        <p className="cell-sub">{t("covers_requirements")}: {reqs.map(r => <span key={r} className="item-chip">{r}</span>)}</p>
+      )}
     </div>
   );
 }
@@ -205,11 +242,16 @@ function LessonForm({ lesson, onSave, onCancel }) {
 }
 
 function TaskForm({ task, onSave, onCancel }) {
+  const { t, pick } = useLanguage();
   const [title, setTitle] = useState(task.title);
+  const [criteria, setCriteria] = useState(pick(task, "completion_criteria") || "");
   return (
     <div className="inline-form">
-      <textarea rows={3} value={title} onChange={e => setTitle(e.target.value)} />
-      <FormButtons onCancel={onCancel} onSave={() => onSave({ title: title.trim() })} disabled={!title.trim()} />
+      <label>{t("task_action")}<textarea rows={3} value={title} onChange={e => setTitle(e.target.value)} /></label>
+      <label>{t("completion_criteria")}<textarea rows={2} value={criteria} onChange={e => setCriteria(e.target.value)} placeholder={t("completion_criteria_hint")} /></label>
+      {/* Missing criteria blocks publication in Python verification; do not allow empty criteria */}
+      <FormButtons onCancel={onCancel} onSave={() => onSave({ title: title.trim(), completion_criteria: criteria.trim() })}
+        disabled={!title.trim() || !criteria.trim()} />
     </div>
   );
 }
@@ -230,7 +272,7 @@ function QuizForm({ question, onSave, onCancel }) {
         </label>
       ))}
       <span className="cell-sub">{t("quiz_edit_hint")}</span>
-      {/* Câu hỏi đã sửa tay dùng chung một nội dung cho cả hai ngôn ngữ */}
+      {/* Manually edited questions use the edited content for both language fields */}
       <FormButtons onCancel={onCancel} disabled={!valid}
         onSave={() => onSave({ question: text.trim(), questionEn: text.trim(), options: options.map(o => o.trim()), answer })} />
     </div>

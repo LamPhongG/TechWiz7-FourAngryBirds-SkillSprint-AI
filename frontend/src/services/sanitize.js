@@ -1,5 +1,5 @@
-// Dữ liệu trong localStorage / IndexedDB có thể do phiên bản cũ của app ghi, hoặc bị sửa tay.
-// Bản ghi sai cấu trúc bị bỏ qua khi đọc để một bản ghi hỏng không làm trắng cả ứng dụng.
+// Data stored in localStorage / IndexedDB may originate from legacy versions or manual edits.
+// Malformed records are discarded during reading so a single corrupted entry won't crash the entire app.
 import { emptyEnrollment } from "../utils/progress";
 
 const isObj = v => v !== null && typeof v === "object" && !Array.isArray(v);
@@ -27,7 +27,7 @@ export function sanitizeAuditLog(value) {
   return arr(value).filter(e => isObj(e) && typeof e.id === "string" && typeof e.action === "string");
 }
 
-/** { userId: { pathId: enrollment } } — mỗi enrollment được bù các field còn thiếu */
+/** { userId: { pathId: enrollment } } — each enrollment is backfilled with missing fields */
 export function sanitizeEnrollments(value) {
   if (!isObj(value)) return {};
   const out = {};

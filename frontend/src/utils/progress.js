@@ -1,6 +1,6 @@
-// Tiến độ học của nhân viên trên một lộ trình đã phát hành.
-// Học phần hoàn thành = đọc hết bài học + làm hết nhiệm vụ + đạt bài kiểm tra.
-// Giai đoạn sau chỉ mở khi mọi học phần của các giai đoạn trước đã hoàn thành (học đúng luồng).
+// Employee learning progress on published learning paths.
+// Completed module = read all lessons + completed all tasks + passed quiz.
+// Subsequent stage unlocks only when all modules of previous stages are completed.
 
 export const PASS_RATIO = 0.7;
 
@@ -41,7 +41,7 @@ export function pathProgress(path, enrollment) {
   return { done, total: modules.length, percent: modules.length ? Math.round((done / modules.length) * 100) : 0, complete: modules.length > 0 && done === modules.length };
 }
 
-/** Học phần tiếp theo cần học: học phần chưa xong đầu tiên trong giai đoạn đang mở */
+/** Next module to study: the first incomplete module in the currently unlocked stage */
 export function nextModule(path, enrollment) {
   for (let i = 0; i < path.stages.length; i++) {
     if (!stageUnlocked(path, i, enrollment)) return null;

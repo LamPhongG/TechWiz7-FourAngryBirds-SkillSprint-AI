@@ -1,0 +1,17 @@
+{
+  "document_name": "sample_unseen_policy.pdf",
+  "chunks_extracted": 5,
+  "target_role": "DevOps Engineer",
+  "report_id": "REP-7142B70A",
+  "status": "VERIFIED",
+  "match_score": 1.0,
+  "total_checks": 5,
+  "matched_checks": 5,
+  "hallucinations_detected": 0,
+  "contradictions_detected": 0,
+  "security_threats_detected": 0,
+  "summary": "Fully verified across both pipelines. Match score is 100.0%.",
+  "role_coverage_score": 1.0,
+  "prerequisite_errors": [],
+  "is_new_role": false
+}

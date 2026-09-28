@@ -6,8 +6,8 @@ import { usePaths, PathError } from "../../contexts/PathsContext";
 import { formatDateTime } from "../../utils/helpers";
 
 /**
- * Trao đổi giữa Reviewer và HR trên một lộ trình. Góp ý có thể gắn vào một mục cụ thể
- * (học phần, bài học, câu hỏi…); HR đánh dấu đã xử lý trước khi gửi duyệt lại.
+ * Discussions between Reviewer and HR on a learning path. Comments can attach to a specific item
+ * (module, lesson, question...); HR marks as resolved before resubmitting.
  */
 export default function PathComments({ path, canComment, itemRef, onClearItemRef }) {
   const { t, locale } = useLanguage();
@@ -16,13 +16,14 @@ export default function PathComments({ path, canComment, itemRef, onClearItemRef
   const [replyTo, setReplyTo] = useState(null);
   const [error, setError] = useState("");
 
-  const run = (fn) => {
+  // Awaits both synchronous operations (browser mode) and API calls (backend mode)
+  const run = async (fn) => {
     setError("");
-    try { fn(); return true; } catch (e) { setError(e instanceof PathError ? t(e.key, e.vars) : e.message); return false; }
+    try { await fn(); return true; } catch (e) { setError(e instanceof PathError ? t(e.key, e.vars) : e.message); return false; }
   };
 
-  const send = () => {
-    if (run(() => addComment(path.id, { text, itemRef, replyTo: replyTo?.id || null }))) {
+  const send = async () => {
+    if (await run(() => addComment(path.id, { text, itemRef, replyTo: replyTo?.id || null }))) {
       setText("");
       setReplyTo(null);
       onClearItemRef?.();

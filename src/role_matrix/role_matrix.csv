@@ -1,0 +1,25 @@
+role,topic,mandatory,priority,max_total_minutes,prerequisite_of
+DevOps Engineer,VPN,Yes,High,240,Encryption
+DevOps Engineer,Encryption,Yes,High,240,
+Software Engineer,Code Review,Yes,High,300,Testing
+Software Engineer,Testing,Yes,High,300,Deployment
+Software Engineer,Deployment,Yes,Medium,300,
+HR Manager,Onboarding,Yes,High,300,
+HR Manager,Leave Policy,Yes,High,300,
+HR Manager,Compliance,Yes,Medium,300,
+Accountant,Reimbursement,Yes,High,300,
+Accountant,Financial Audit,Yes,High,300,
+IT Admin,Information Security,Yes,High,300,Password Policy
+IT Admin,Password Policy,Yes,High,300,
+Sales Executive,Sales Pipeline,Yes,High,300,
+Sales Executive,CRM,Yes,Medium,300,
+QA Engineer,Testing,Yes,High,300,Bug Tracking
+QA Engineer,Bug Tracking,Yes,Medium,300,
+Project Manager,Project Planning,Yes,High,300,Risk Management
+Project Manager,Risk Management,Yes,Medium,300,
+Marketing Specialist,Campaign Strategy,Yes,High,300,
+Marketing Specialist,Brand Guidelines,Yes,Medium,300,
+Legal Advisor,Compliance,Yes,High,300,
+Legal Advisor,Contract Review,Yes,High,300,
+Data Analyst,Data Governance,Yes,High,300,Reporting
+Data Analyst,Reporting,Yes,Medium,300,

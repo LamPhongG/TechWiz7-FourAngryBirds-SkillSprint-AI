@@ -2,7 +2,7 @@ import { CircleCheck } from "./Icons";
 import { Badge } from "./UI";
 import { useLanguage } from "../contexts/LanguageContext";
 
-/** Danh sách cờ prompt injection: luật khớp, vị trí (tài liệu · chunk · trang) và đoạn trích quanh chỗ khớp */
+/** List of prompt injection flags: matched rule, location (document · chunk · page), and excerpt around match */
 export default function InjectionFlagList({ flags }) {
   const { t } = useLanguage();
   if (!flags.length) return <p className="quote-check quote-check--ok"><CircleCheck size={13} /> {t("injection_none")}</p>;

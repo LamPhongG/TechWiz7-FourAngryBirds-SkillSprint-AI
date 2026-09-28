@@ -14,70 +14,17 @@
 .upload-zone{border:1px dashed #cfd4df;border-radius:12px;padding:38px;text-align:center;color:#778194}.upload-zone h3{color:#343c4d;margin:12px 0 5px}.upload-zone p{font-size:15px;margin:0 0 17px}.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.form-grid label{display:flex;flex-direction:column;gap:6px;font-size:16px;font-weight:600;color:#505a6d}.form-grid label:nth-child(3),.form-grid textarea{grid-column:1/-1}.form-grid input,.form-grid select,.form-grid textarea{border:1px solid #dfe3ea;border-radius:8px;height:38px;padding:0 10px;outline:0;background:#fff;font-size:15px}.form-grid textarea{height:90px;padding-top:10px;resize:vertical}.modal-backdrop{position:fixed;inset:0;background:#0e14266b;display:grid;place-items:center;z-index:50;padding:20px}.modal{width:100%;background:#fff;border-radius:14px;box-shadow:0 25px 70px #10162933}.modal-header{padding:17px 20px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between}.modal-header h3{margin:0;font-size:15px}.modal-body{padding:20px}.modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:20px}.toast{position:fixed;right:25px;bottom:25px;background:#172033;color:#fff;padding:11px 14px;border-radius:9px;display:flex;gap:15px;align-items:center;box-shadow:0 15px 40px #0003;z-index:80;font-size:15px}.toast button{background:transparent;color:#8ce0b8}.ai-studio-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}.ai-header{display:flex;gap:12px;align-items:center;margin-bottom:22px}.ai-icon{width:42px;height:42px;border-radius:12px;background:var(--purple-bg);color:var(--primary);display:grid;place-items:center}.ai-header h3{margin:0}.ai-header p{font-size:16px;color:var(--muted);margin:4px 0}.ai-studio-grid label:not(.checkbox),.ai-studio-grid .field-label{display:block;font-size:16px;font-weight:600;color:#505a6d;margin-bottom:7px}.ai-studio-grid select{width:100%;height:38px;border:1px solid var(--line);border-radius:8px;padding:0 10px;margin-bottom:18px;background:#fff;font-size:15px}.source-select{display:grid;gap:6px;margin-bottom:20px}.source-select button{display:flex;align-items:center;gap:8px;background:#f8f9fb;border:1px solid #e7e9ee;border-radius:8px;padding:10px;text-align:left;font-size:16px;color:#586276}.source-select button span{width:17px;height:17px;border:1px solid #d6dbe3;border-radius:5px;display:grid;place-items:center}.source-select button.selected{background:#f5f3ff;border-color:#cfc9ff;color:#4d45b8}.source-select button.selected span{background:var(--primary);border-color:var(--primary);color:#fff}.review-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}.spin{animation:spin .8s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}.empty-state{text-align:center;padding:70px 20px}.empty-icon{width:70px;height:70px;border-radius:20px;background:var(--purple-bg);color:var(--primary);display:grid;place-items:center;margin:0 auto 16px;font-weight:700}.page-empty{min-height:60vh;display:grid;place-items:center}.page-empty>*{margin-left:auto;margin-right:auto}
 .auth-page{min-height:100vh;display:grid;grid-template-columns:1.05fr .95fr;background:#fff}.auth-visual{background:linear-gradient(145deg,#11162a,#24224d);color:#fff;padding:40px;position:relative;overflow:hidden}.auth-visual:after{content:"";position:absolute;width:500px;height:500px;border-radius:50%;background:#7065e82b;right:-180px;bottom:-180px;filter:blur(2px)}.auth-brand{display:flex;align-items:center;gap:10px;font-weight:700}.auth-hero{max-width:530px;margin:18vh auto 0;position:relative;z-index:2}.auth-hero h1{font-size:48px;line-height:1.08;letter-spacing:-.045em;margin:10px 0 18px}.auth-hero p{font-size:16px;line-height:1.7;color:#b5bbca;max-width:470px}.auth-mini{display:flex;align-items:center;gap:8px;margin-top:28px;background:#ffffff0d;border:1px solid #ffffff14;padding:12px;border-radius:10px;color:#b9c0d0;font-size:16px;max-width:430px}.checkbox{flex-direction:row!important;align-items:center;font-size:16px!important}.checkbox input{width:auto;height:auto}.link-btn{background:transparent;color:var(--primary);font-size:16px}
 @media(max-width:1100px){.stat-grid{grid-template-columns:repeat(2,1fr)}.dashboard-grid,.ai-studio-grid{grid-template-columns:1fr}}@media(max-width:760px){.sidebar{transform:translateX(-100%);transition:.2s}.sidebar-collapsed .sidebar{transform:translateX(0)}.main{margin-left:0;width:100%}.mobile-menu{display:grid}.topbar{padding:0 16px}.profile-text,.breadcrumbs{display:none}.content{padding:22px 16px}.page-heading{flex-direction:column}.stat-grid{grid-template-columns:1fr}.toolbar{flex-direction:column;align-items:stretch}.search-input{min-width:0}.filter-tabs{overflow:auto}.form-grid{grid-template-columns:1fr}.form-grid label:nth-child(3){grid-column:auto}.auth-page{grid-template-columns:1fr}.auth-visual{display:none}}
-/* ──────────────────────────────────────────────────────────── */
-/* ENHANCED COMPONENTS (SourceBadge, ValidationTag, Timeline) */
-/* ──────────────────────────────────────────────────────────── */
+/* Item validation badges (ValidationTag) and skeleton loading states (SkeletonLoader) */
+.vtag{display:inline-flex;align-items:center;gap:6px;padding:4px 8px;border-radius:6px;font-size:10px;font-weight:600;white-space:nowrap}
+.vtag__icon{display:grid;place-items:center;width:14px;height:14px;border-radius:50%;color:#fff;font-size:9px}
+.vtag--verified{background:var(--green-bg);color:var(--green)}.vtag--verified .vtag__icon{background:var(--green)}
+.vtag--warning{background:var(--orange-bg);color:var(--orange)}.vtag--warning .vtag__icon{background:var(--orange)}
+.vtag--danger{background:var(--red-bg);color:var(--red)}.vtag--danger .vtag__icon{background:var(--red)}
+.vtag--pending{background:#f0f2f5;color:var(--muted)}.vtag--pending .vtag__icon{background:#9ca3af}
+.skeleton{background:linear-gradient(90deg,#f0f2f5 25%,#e2e8f0 50%,#f0f2f5 75%);background-size:200% 100%;animation:skeleton-loading 1.5s infinite}
+@keyframes skeleton-loading{0%{background-position:200% 0}100%{background-position:-200% 0}}
 
-/* Validation Tag */
-.vtag{ display: inline-flex; items-align: center; gap: 6px; padding: 4px 8px; border-radius: 6px; font-size: 10px; font-weight: 600; white-space: nowrap; }
-.vtag__icon{ display: grid; place-items: center; width: 14px; height: 14px; border-radius: 50%; color: #fff; font-size: 9px; }
-
-.vtag--verified{ background: var(--green-bg); color: var(--green); } .vtag--verified .vtag__icon{ background: var(--green); }
-.vtag--warning{ background: var(--orange-bg); color: var(--orange); } .vtag--warning .vtag__icon{ background: var(--orange); }
-.vtag--danger{ background: var(--red-bg); color: var(--red); } .vtag--danger .vtag__icon{ background: var(--red); }
- 
-.vtag--pending{ background: #f0f2f5; color: var(--muted); } .vtag--pending .vtag__icon{ background: #9ca3af; }
-
-
-
-
-
-
-/* Source Badge */
-
-
-
-
-
-
-
-
-
-/* Skeleton Loaders */
-.skeleton{ background: linear-gradient(90deg, #f0f2f5 25%, #e2e8f0 50%, #f0f2f5 75%); background-size: 200% 100%; animation: skeleton-loading 1.5s infinite; }
-@keyframes skeleton-loading { 0%{ background-position: 200% 0; } 100%{ background-position: -200% 0; } }
-
-
-
-
-/* Multi-Stage Timeline (Onboarding) */
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/* Kho tài liệu (SRS Step 4–8) */
+/* Document repository (SRS Step 4–8) */
 .modal{max-height:calc(100vh - 40px);display:flex;flex-direction:column}
 .modal-body{overflow:auto}
 .badge-blue{background:var(--blue-bg);color:#2563eb}
@@ -114,3 +61,18 @@
 .issue--warning{color:#bd6f12}
 .issue--ok{color:#138354}
 .check-pending{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+
+.auth-video-bg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0; }
+.auth-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(17, 22, 42, 0.7); z-index: 1; }
+.auth-logo { max-width: 280px; margin-bottom: 20px; display: block; position: relative; z-index: 2; }
+.auth-brand { position: relative; z-index: 2; }
+
+.auth-logo-icon { height: 40px; width: auto; object-fit: contain; border-radius: 4px; }
+
+.auth-overlay { background: rgba(17, 22, 42, 0.25) !important; }
+.auth-brand { text-shadow: 0 2px 6px rgba(0,0,0,0.8); }
+.auth-logo-icon { filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5)); }
+.auth-hero h1, .auth-hero p, .auth-hero .eyebrow { text-shadow: 0 2px 8px rgba(0,0,0,0.9), 0 0 15px rgba(0,0,0,0.6); }
+.auth-roles li strong, .auth-roles li span { text-shadow: 0 1px 4px rgba(0,0,0,0.9); }
+.auth-roles__icon { box-shadow: 0 2px 6px rgba(0,0,0,0.4); }
+.auth-mini { background: rgba(0, 0, 0, 0.5) !important; border-color: rgba(255, 255, 255, 0.15) !important; text-shadow: 0 1px 3px rgba(0,0,0,0.8); backdrop-filter: blur(4px); }

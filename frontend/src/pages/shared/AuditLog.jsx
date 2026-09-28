@@ -6,7 +6,7 @@ import { useLanguage } from "../../contexts/LanguageContext";
 import { usePaths } from "../../contexts/PathsContext";
 import { todayISO } from "../../utils/helpers";
 
-/** Nhật ký kiểm toán: mọi lần sinh, sửa, gửi duyệt, góp ý, duyệt, thu hồi — chỉ đọc */
+/** Audit log: every path generation, revision, submission, feedback, approval, revocation — read only */
 export default function AuditLog({ pathBasePath }) {
   const { t } = useLanguage();
   const { auditLog } = usePaths();

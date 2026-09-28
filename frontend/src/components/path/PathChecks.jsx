@@ -18,7 +18,7 @@ function ReasonList({ reasons }) {
   return <ul className="reason-list">{reasons.map((r, i) => <li key={i}>{t(r.key, r.vars)}</li>)}</ul>;
 }
 
-/** Tóm tắt kết quả kiểm định: trạng thái cuối, lý do, và có được phát hành không */
+/** Summary of audit results: final status, reasons, and release eligibility */
 export function ChecksSummary({ checks }) {
   const { t } = useLanguage();
   return (
@@ -32,12 +32,12 @@ export function ChecksSummary({ checks }) {
   );
 }
 
-// Cắt đoạn chunk quanh câu trích và tô sáng câu trích
+// Extract snippet around quote and highlight matching text
 function SourceExcerpt({ chunk, quote }) {
   const text = chunk.content;
   const idx = normalizeForMatch(text).indexOf(normalizeForMatch(quote));
   if (idx < 0) return <p className="source-excerpt">{text.slice(0, 400)}{text.length > 400 ? "…" : ""}</p>;
-  // Vị trí sau chuẩn hoá chỉ xấp xỉ vị trí gốc; đủ để lấy ngữ cảnh xung quanh
+  // Position after normalization is approximate; sufficient for providing surrounding context
   const start = Math.max(0, idx - 150);
   const before = text.slice(start, idx);
   const match = text.slice(idx, idx + quote.length);
@@ -52,7 +52,7 @@ function aiText(entry, t, pick) {
 }
 
 /**
- * Bốn nhóm kiểm tra cho Reviewer: kiến thức (so sánh nội dung AI với tài liệu gốc), luồng, chức năng, an toàn.
+ * Four check groups for Reviewer: knowledge (comparing AI output against source docs), workflow, structure, safety.
  */
 export default function PathChecks({ path, checks }) {
   const { t, pick } = useLanguage();

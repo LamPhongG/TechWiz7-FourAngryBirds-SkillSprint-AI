@@ -1,14 +1,36 @@
+# Python & Virtual Environments
 venv/
+.venv/
+env/
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+
+# Environment Variables & Secrets
 .env
 *.local
+
+# Database
 *.sqlite3
 *.db
-uploads/
-.DS_Store
 
-# Frontend (React + Vite)
+# Temporary & Test Artifacts
+.pytest_cache/
+.coverage
+htmlcov/
+*.log
+uploads/
+# IDE & Editors
+.vscode/
+.idea/
+pyrightconfig.json
+pyrefly.toml
+*.sublime-project
+*.sublime-workspace
+
+# Frontend (React + Vite) and OS files
+*.pyc
+.DS_Store
 node_modules/
 dist/
-*.log
+scratch/

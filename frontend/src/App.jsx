@@ -10,9 +10,15 @@ import RoleLayout from "./layouts/RoleLayout";
 
 import Login from "./pages/auth/Login";
 
+import AdminDashboard from "./pages/admin/Dashboard";
+import AdminUsers from "./pages/admin/Users";
+
 import HrDashboard from "./pages/hr/Dashboard";
 import HrDocuments from "./pages/hr/Documents";
+import HrInvites from "./pages/hr/Invites";
 import CreatePath from "./pages/hr/CreatePath";
+import HrLearners from "./pages/hr/Learners";
+import HrReports from "./pages/hr/Reports";
 
 import ReviewerDashboard from "./pages/reviewer/Dashboard";
 
@@ -22,6 +28,7 @@ import AuditLog from "./pages/shared/AuditLog";
 
 import EmployeeDashboard from "./pages/employee/Dashboard";
 import MyPaths from "./pages/employee/MyPaths";
+import Explore from "./pages/employee/Explore";
 import PathView from "./pages/employee/PathView";
 import ModuleView from "./pages/employee/ModuleView";
 import EmployeeDocuments from "./pages/employee/Documents";
@@ -47,6 +54,14 @@ function HrPaths() {
     <PathList basePath="/hr/paths" createPath="/hr/paths/new"
       tabs={["all", "draft", "in_review", "changes_requested", "published", "archived"]}
       eyebrow={t("role_hr")} title={t("menu_paths")} description={t("hr_paths_desc")} />
+  );
+}
+
+function AdminPaths() {
+  const { t } = useLanguage();
+  return (
+    <PathList basePath="/admin/paths" tabs={["all", "draft", "in_review", "changes_requested", "published", "archived"]}
+      eyebrow={t("role_admin")} title={t("menu_paths")} description={t("admin_paths_desc")} />
   );
 }
 
@@ -80,10 +95,23 @@ export default function App() {
                     <Route path="/login" element={<Login />} />
                   </Route>
 
+                  <Route path="/admin" element={<RoleLayout role="admin" />}>
+                    <Route index element={<Navigate to="/admin/dashboard" replace />} />
+                    <Route path="dashboard" element={<AdminDashboard />} />
+                    <Route path="users" element={<AdminUsers />} />
+                    <Route path="paths" element={<AdminPaths />} />
+                    <Route path="paths/:id" element={<PathDetail basePath="/admin/paths" />} />
+                    <Route path="reports" element={<HrReports />} />
+                    <Route path="audit-log" element={<AuditLog pathBasePath="/admin/paths" />} />
+                  </Route>
+
                   <Route path="/hr" element={<RoleLayout role="hr" />}>
                     <Route index element={<Navigate to="/hr/dashboard" replace />} />
                     <Route path="dashboard" element={<HrDashboard />} />
                     <Route path="documents" element={<HrDocuments />} />
+                    <Route path="invites" element={<HrInvites />} />
+                    <Route path="learners" element={<HrLearners />} />
+                    <Route path="reports" element={<HrReports />} />
                     <Route path="paths" element={<HrPaths />} />
                     <Route path="paths/new" element={<CreatePath />} />
                     <Route path="paths/:id" element={<PathDetail basePath="/hr/paths" />} />
@@ -105,12 +133,12 @@ export default function App() {
                     <Route path="paths" element={<MyPaths />} />
                     <Route path="paths/:id" element={<PathView />} />
                     <Route path="paths/:id/modules/:moduleId" element={<ModuleView />} />
+                    <Route path="explore" element={<Explore />} />
                     <Route path="documents" element={<EmployeeDocuments />} />
                     <Route path="profile" element={<Profile />} />
                   </Route>
 
-                  {/* Đường dẫn cũ trước khi đổi tên vai trò */}
-                  <Route path="/admin/*" element={<Navigate to="/hr/dashboard" replace />} />
+                  {/* Legacy route before role rename */}
                   <Route path="/manager/*" element={<Navigate to="/reviewer/dashboard" replace />} />
                   <Route index element={<Navigate to={auth.user ? HOME_PATH[auth.user.userRole] : "/login"} replace />} />
                   <Route path="*" element={<NotFound user={auth.user} />} />

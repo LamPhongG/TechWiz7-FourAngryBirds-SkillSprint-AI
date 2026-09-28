@@ -1,20 +1,22 @@
-// Kiểm tra tài liệu tải lên (SRS Step 5) và vòng đời phiên bản (SRS Step 8)
-// Mọi lỗi/cảnh báo trả về dạng { key, vars } để giao diện dịch bằng t()
-import { DOCUMENT_CATALOG, UPLOAD_RULES } from "../data/company";
+// Upload document validation (SRS Step 5) and version lifecycle (SRS Step 8)
+// All errors/warnings return in format { key, vars } for t() interpolation
+import { ACCEPTED_EXTENSIONS, DOCUMENT_CATALOG, UPLOAD_RULES } from "../data/company";
 
 const CODE_PATTERN = /^DOC-\d{2,}$/;
 const VERSION_PATTERN = /^\d+(\.\d+){0,2}$/;
 
-function getExtension(fileName = "") {
+// Normalize file extensions to standard format (e.g. .markdown -> md)
+export function getExtension(fileName = "") {
   const dot = fileName.lastIndexOf(".");
-  return dot === -1 ? "" : fileName.slice(dot + 1).toLowerCase();
+  const ext = dot === -1 ? "" : fileName.slice(dot + 1).toLowerCase();
+  return UPLOAD_RULES.extensionAliases[ext] || ext;
 }
 
 export function normalizeVersion(value = "") {
   return String(value).trim().replace(/^v/i, "");
 }
 
-// So sánh "2.0" với "1.10": trả về >0, 0, <0
+// Version comparator: returns >0, 0, <0
 export function compareVersions(a, b) {
   const pa = normalizeVersion(a).split(".").map(Number);
   const pb = normalizeVersion(b).split(".").map(Number);
@@ -38,7 +40,7 @@ function slugify(text = "") {
     .replace(/^-|-$/g, "");
 }
 
-// Nhóm phiên bản: theo danh mục nếu mã có trong danh mục, không thì theo tên tài liệu
+// Group family: matches catalog entry if known, else falls back to slugified title
 export function familyOf({ code, titleEn }) {
   return findCatalogEntry(code)?.family || slugify(titleEn);
 }
@@ -58,14 +60,14 @@ function parseFileName(fileName) {
   return { code, version, titleEn, obsoleteHint };
 }
 
-// Mã băm SHA-256 để phát hiện file trùng nội dung
+// SHA-256 hash to detect duplicate file contents
 export async function hashFile(file) {
   const buffer = await file.arrayBuffer();
   if (globalThis.crypto?.subtle) {
     const digest = await crypto.subtle.digest("SHA-256", buffer);
     return Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, "0")).join("");
   }
-  // crypto.subtle chỉ có trên HTTPS/localhost — dự phòng bằng FNV-1a (kém chắc chắn hơn nhưng vẫn phát hiện được trùng lặp)
+  // crypto.subtle requires HTTPS/localhost — fallback with FNV-1a
   let hash = 0x811c9dc5;
   const bytes = new Uint8Array(buffer);
   for (let i = 0; i < bytes.length; i++) {
@@ -75,14 +77,14 @@ export async function hashFile(file) {
   return `fnv-${hash.toString(16)}-${bytes.length}`;
 }
 
-// Kiểm tra nội dung thật của file: đúng định dạng, không rỗng
+// Inspect actual file content: valid format, non-empty
 export async function inspectContent(file, ext) {
   const issues = [];
   if (file.size === 0) return [{ key: "err_file_empty" }];
   const head = new Uint8Array(await file.slice(0, 5).arrayBuffer());
   const headText = String.fromCharCode(...head);
   if (ext === "pdf" && !headText.startsWith("%PDF")) issues.push({ key: "err_file_corrupt", vars: { ext } });
-  // DOCX là file ZIP → luôn bắt đầu bằng "PK\x03\x04"
+  // DOCX is a ZIP archive — always starts with "PK\x03\x04"
   if (ext === "docx" && !(head[0] === 0x50 && head[1] === 0x4b && head[2] === 0x03 && head[3] === 0x04)) {
     issues.push({ key: "err_file_corrupt", vars: { ext } });
   }
@@ -93,7 +95,7 @@ export async function inspectContent(file, ext) {
   return issues;
 }
 
-// Tạo bản nháp metadata từ tên file + danh mục công ty
+// Generate draft metadata from file name and company catalog
 export function buildDraft(file, { today }) {
   const ext = getExtension(file.name);
   const parsed = parseFileName(file.name);
@@ -102,8 +104,8 @@ export function buildDraft(file, { today }) {
     key: `${file.name}-${file.size}-${file.lastModified}-${Math.random().toString(36).slice(2, 8)}`,
     file,
     ext,
-    hash: null,          // điền sau khi băm xong
-    contentIssues: null, // điền sau khi đọc nội dung
+    hash: null,          // populated after hashing
+    contentIssues: null, // populated after content reading
     code: parsed.code,
     titleEn: catalog?.titleEn.replace(/\s*\(obsolete\)$/i, "") || parsed.titleEn,
     category: catalog?.category || "",
@@ -115,7 +117,7 @@ export function buildDraft(file, { today }) {
   };
 }
 
-// Kiểm tra một bản nháp so với kho hiện có và các file khác trong cùng lượt tải
+// Validate a single draft against existing documents and current batch
 export function validateDraft(draft, { existing, batch, today }) {
   const errors = [];
   const warnings = [];
@@ -125,7 +127,7 @@ export function validateDraft(draft, { existing, batch, today }) {
   const family = familyOf({ code, titleEn: draft.titleEn });
 
   if (!allowedExtensions.includes(draft.ext)) {
-    errors.push({ key: "err_file_type", vars: { ext: draft.ext || "?", list: allowedExtensions.map(e => `.${e}`).join(", ") } });
+    errors.push({ key: "err_file_type", vars: { ext: draft.ext || "?", list: ACCEPTED_EXTENSIONS.map(e => `.${e}`).join(", ") } });
   }
   if (draft.file.size > maxSizeMB * 1024 * 1024) errors.push({ key: "err_file_too_large", vars: { max: maxSizeMB } });
   if (draft.contentIssues) errors.push(...draft.contentIssues);
@@ -146,7 +148,7 @@ export function validateDraft(draft, { existing, batch, today }) {
   if (!draft.effectiveDate) errors.push({ key: "err_effective_required" });
   if (draft.expiryDate && draft.effectiveDate && draft.expiryDate <= draft.effectiveDate) errors.push({ key: "err_expiry_before" });
 
-  // Mã tài liệu đã thuộc về tài liệu khác
+  // Document code already belongs to another family
   const codeOwner = existing.find(d => d.code === code && d.family !== family);
   if (CODE_PATTERN.test(code) && codeOwner) errors.push({ key: "err_code_family", vars: { code, title: codeOwner.titleEn } });
 
@@ -173,7 +175,7 @@ export function validateDraft(draft, { existing, batch, today }) {
   return { errors, warnings, pending, valid: !pending && errors.length === 0 };
 }
 
-// Vòng đời từng tài liệu: active / obsolete (bị bản mới thay) / expired / upcoming
+// Document lifecycle: active / obsolete (superseded by newer version) / expired / upcoming
 export function computeLifecycle(documents, today) {
   const result = {};
   const inForce = d => d.effectiveDate <= today && !(d.expiryDate && d.expiryDate < today);

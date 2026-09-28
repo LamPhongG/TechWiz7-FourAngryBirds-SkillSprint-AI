@@ -1,8 +1,9 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowUpRight, WandSparkles } from "../../components/Icons";
+import { ArrowUpRight, WandSparkles, SlidersHorizontal } from "../../components/Icons";
 import { Card, SectionHeader, Button, SearchInput, EmptyState } from "../../components/UI";
 import { PathStatusBadge, FinalStatusBadge, CoverageScore } from "../../components/path/Badges";
+import PlanComparisonModal from "../../components/path/PlanComparisonModal";
 import { useLanguage } from "../../contexts/LanguageContext";
 import { usePaths } from "../../contexts/PathsContext";
 import { useDocuments } from "../../contexts/DocumentsContext";
@@ -11,8 +12,8 @@ import { runPathChecks } from "../../utils/pathChecks";
 import { formatDateTime } from "../../utils/helpers";
 
 /**
- * Danh sách lộ trình theo trạng thái. HR xem mọi lộ trình mình tạo; Reviewer dùng cùng trang
- * với bộ lọc mặc định khác (hàng đợi = đang chờ duyệt).
+ * Path list filtered by status. HR views paths they created; Reviewer shares this page
+ * with a different default filter (queue = in_review).
  */
 export default function PathList({ basePath, tabs, defaultTab, eyebrow, title, description, createPath }) {
   const navigate = useNavigate();
@@ -21,6 +22,7 @@ export default function PathList({ basePath, tabs, defaultTab, eyebrow, title, d
   const { documents, chunksByDocId } = useDocuments();
   const [tab, setTab] = useState(defaultTab || tabs[0]);
   const [query, setQuery] = useState("");
+  const [compareOpen, setCompareOpen] = useState(false);
 
   const checks = useMemo(() => Object.fromEntries(paths.map(p => [p.id, runPathChecks(p, { documents, chunksByDocId })])),
     [paths, documents, chunksByDocId]);
@@ -40,7 +42,14 @@ export default function PathList({ basePath, tabs, defaultTab, eyebrow, title, d
           <h1>{title}</h1>
           <p>{description}</p>
         </div>
-        {createPath && <Button onClick={() => navigate(createPath)} icon={<WandSparkles size={16} />}>{t("menu_create_path")}</Button>}
+        <div style={{ display: "flex", gap: 10 }}>
+          {paths.length >= 2 && (
+            <Button variant="outline" onClick={() => setCompareOpen(true)} icon={<SlidersHorizontal size={16} />}>
+              {t("menu_plan_comparison") || "Plan Comparison"}
+            </Button>
+          )}
+          {createPath && <Button onClick={() => navigate(createPath)} icon={<WandSparkles size={16} />}>{t("menu_create_path")}</Button>}
+        </div>
       </div>
 
       <Card>
@@ -101,6 +110,8 @@ export default function PathList({ basePath, tabs, defaultTab, eyebrow, title, d
           </div>
         )}
       </Card>
+
+      <PlanComparisonModal open={compareOpen} onClose={() => setCompareOpen(false)} />
     </div>
   );
 }

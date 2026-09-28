@@ -1,5 +1,5 @@
-// Đọc/ghi JSON vào localStorage cho dữ liệu nhỏ (lộ trình, audit log, tiến độ học).
-// Storage bị chặn (private mode) hoặc dữ liệu hỏng thì trả về giá trị mặc định thay vì làm crash app.
+// Read/write JSON to localStorage for lightweight data (paths, audit log, learning progress).
+// If storage is blocked (e.g. private browsing) or corrupted, returns fallback rather than crashing the app.
 
 export const STORAGE_KEYS = {
   paths: "skillsprint.paths.v1",
@@ -18,7 +18,7 @@ export function readJson(key, fallback) {
   }
 }
 
-/** @returns {boolean} false khi không ghi được (hết quota, storage bị chặn) */
+/** @returns {boolean} false when writing fails (quota exceeded, storage blocked) */
 export function writeJson(key, value) {
   try {
     localStorage.setItem(key, JSON.stringify(value));

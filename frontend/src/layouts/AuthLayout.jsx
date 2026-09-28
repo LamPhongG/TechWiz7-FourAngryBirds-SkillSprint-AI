@@ -1,42 +1,23 @@
 import { Outlet } from "react-router-dom";
-import { Sparkles, ShieldCheck, WandSparkles, UserRound } from "../components/Icons";
-import { useLanguage, LanguageToggle } from "../contexts/LanguageContext";
+import { useLanguage } from "../contexts/LanguageContext";
 
-const ROLE_INTRO = [
-  ["hr", WandSparkles],
-  ["reviewer", ShieldCheck],
-  ["employee", UserRound],
-];
-
-/** Nửa trái giới thiệu sản phẩm, nửa phải là nền gradient cho thẻ đăng nhập dạng kính */
+/** Left side showcases product visuals, right side features glassmorphism login card */
 export default function AuthLayout() {
   const { t } = useLanguage();
   return (
     <div className="auth-page">
       <section className="auth-visual">
+        <video autoPlay loop muted playsInline className="auth-video-bg">
+          <source src="/videocym.mp4" type="video/mp4" />
+        </video>
+        <div className="auth-overlay"></div>
         <div className="auth-brand">
-          <div className="brand-mark"><Sparkles size={18} /></div>
+          <img src="/logonhom.png" alt="Logo" className="auth-logo-icon" style={{ borderRadius: "8px", objectFit: "cover" }} />
           SkillSprint AI
         </div>
         <div className="auth-hero">
           <span className="eyebrow">{t("auth_eyebrow")}</span>
           <h1>{t("auth_title")}</h1>
-          <p>{t("auth_desc")}</p>
-          <ul className="auth-roles">
-            {ROLE_INTRO.map(([role, Icon]) => (
-              <li key={role}>
-                <span className="auth-roles__icon"><Icon size={16} /></span>
-                <div>
-                  <strong>{t(`role_${role}`)}</strong>
-                  <span>{t(`login_role_${role}_desc`)}</span>
-                </div>
-              </li>
-            ))}
-          </ul>
-          <div className="auth-mini">
-            <ShieldCheck size={18} />
-            <span>{t("auth_mini")}</span>
-          </div>
         </div>
       </section>
 
@@ -44,7 +25,6 @@ export default function AuthLayout() {
         <span className="glass-blob glass-blob--1" aria-hidden="true" />
         <span className="glass-blob glass-blob--2" aria-hidden="true" />
         <span className="glass-blob glass-blob--3" aria-hidden="true" />
-        <LanguageToggle className="glass-lang" />
         <Outlet />
       </section>
     </div>

@@ -1,4 +1,4 @@
-/* Tính năng: kho tài liệu, ma trận vị trí, kiểm định, lộ trình học, trang học của nhân viên */
+/* Features: document repository, role matrix, audit, learning paths, employee learning page */
 .text-danger{color:var(--red)!important}.text-warning{color:var(--orange)}
 .heading-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .nav-count{margin-left:auto;font-style:normal;font-size:12px;font-weight:700;min-width:22px;height:20px;padding:0 6px;border-radius:10px;background:#f59e0b;color:#1f1300;display:grid;place-items:center}
@@ -91,7 +91,7 @@
   .meta-list{grid-template-columns:1fr}
 }
 
-/* Nút nguồn đang chọn tô nền cho mọi span (ô checkbox) — trả lại màu chữ thường cho tiêu đề */
+/* Selected source button applies background to all spans (checkbox cell) — reset default text color for title */
 .source-select button.selected span.source-select__title,.source-select button.selected span.source-select__sub{background:transparent;border:0;color:inherit}
 .source-select button.selected span.source-select__sub{color:var(--muted)}
 .ai-studio-grid label textarea{display:block;width:100%;margin-top:6px}
@@ -215,7 +215,7 @@
 .crash__actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
 .crash__hint{font-size:13px;color:var(--muted)!important;margin-bottom:0}
 
-/* Trang đăng nhập: nửa trái giới thiệu, nửa phải thẻ kính (glassmorphism) */
+/* Login page: left half hero introduction, right half glassmorphism card */
 .auth-hero{margin:10vh auto 0}
 .auth-roles{list-style:none;padding:0;margin:28px 0 0;display:grid;gap:14px}
 .auth-roles li{display:flex;gap:12px;align-items:flex-start}
@@ -265,8 +265,109 @@
 .glass-demo small{display:block;opacity:.85}
 .glass-chip{padding:5px 12px;border-radius:999px;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.38);color:#fff;font-size:13px;font-weight:600}
 .glass-chip:hover{background:rgba(255,255,255,.3)}
+/* Path creation: mandatory documents per role matrix, duration selector */
+.notice--info{background:var(--blue-bg);color:#1f5fae;align-items:center}
+.source-select button.is-mandatory{border-color:#b9b2ff}
+.source-select button.is-omitted{border-color:var(--orange);border-style:dashed;background:#fff8ed}
+.source-tag{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:6px;font-size:11px;font-weight:700;vertical-align:1px}
+.source-tag--mandatory{background:var(--red-bg);color:#b3263e}
+.source-tag--optional{background:var(--green-bg);color:#0f7a4d}
+.duration-picker{margin-bottom:10px}
+.duration-options{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:6px}
+.duration-options button{display:flex;flex-direction:column;align-items:flex-start;gap:3px;padding:10px;border:1px solid #e7e9ee;border-radius:9px;background:#f8f9fb;text-align:left;color:#465066}
+.duration-options button strong{font-size:14px}
+.duration-options button small{font-size:11.5px;color:var(--muted);line-height:1.35}
+.duration-options button.selected{background:#f5f3ff;border-color:#a9a1ff;color:#4d45b8}
+.task-criteria{margin:4px 0 6px;font-size:13px;color:#465066}
+.module-brief{padding:10px 12px;margin-bottom:10px;border-radius:9px;background:var(--purple-bg)}
+.module-brief h4{margin-top:0}
+.module-brief ul,.objective-list{margin:4px 0 6px;padding-left:20px;font-size:14px}
+.module-brief .item-chip{margin-left:4px}
+.gen-offrole{margin:0 0 12px;padding:8px 12px;border:1px solid var(--line);border-radius:9px;background:#fafbfd;font-size:14px}
+.gen-offrole summary{cursor:pointer;font-weight:600;color:#465066}
+.gen-offrole ul{margin:8px 0 2px;padding-left:18px}
+/* AI path drafting progress */
+.gen-progress{background:#fff;border:1px solid var(--line);border-radius:16px;padding:22px;box-shadow:0 10px 30px #1016290d}
+.gen-progress--compact{border:0;box-shadow:none;padding:0}
+.gen-progress__head{display:flex;align-items:center;gap:14px}
+.gen-progress__icon{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;flex-shrink:0;color:#fff;background:linear-gradient(135deg,#7c6cff,#4d45b8)}
+.gen-progress--running .gen-progress__icon{animation:gp-pulse 1.6s ease-in-out infinite}
+.gen-progress--done .gen-progress__icon{background:linear-gradient(135deg,#34c38f,#0f7a4d)}
+.gen-progress--failed .gen-progress__icon{background:linear-gradient(135deg,#ff7a8a,#b3263e)}
+.gen-progress__title{flex:1;min-width:0}
+.gen-progress__title h2{margin:0;font-size:19px}
+.gen-progress__title p{margin:3px 0 0;color:var(--muted);font-size:14px}
+.gen-progress__meta{display:flex;align-items:center;gap:12px}
+.gen-progress__clock{font-variant-numeric:tabular-nums;color:var(--muted);font-size:14px}
+.gen-progress__percent{font-size:26px;font-variant-numeric:tabular-nums;color:#4d45b8}
+.gen-progress--done .gen-progress__percent{color:#0f7a4d}
+.gen-progress__bar{height:8px;border-radius:99px;background:#eef0f5;overflow:hidden;margin:16px 0 18px}
+.gen-progress__bar div{height:100%;border-radius:99px;background:linear-gradient(90deg,#7c6cff,#4d45b8);transition:width .6s ease}
+.gen-progress--running .gen-progress__bar div{background-size:200% 100%;background-image:linear-gradient(90deg,#7c6cff,#a99dff,#4d45b8,#7c6cff);animation:gp-flow 2s linear infinite}
+.gen-progress--done .gen-progress__bar div{background:linear-gradient(90deg,#34c38f,#0f7a4d)}
+.gen-progress--failed .gen-progress__bar div{background:#e56b7b}
+.gen-progress__grid{display:grid;grid-template-columns:minmax(260px,1fr) 1.4fr;gap:18px}
+.gen-progress--compact .gen-progress__grid{grid-template-columns:1fr}
+.gp-steps{list-style:none;margin:0;padding:0;position:relative}
+.gp-step{display:flex;gap:12px;padding:0 0 16px;position:relative}
+.gp-step:not(:last-child)::before{content:"";position:absolute;left:12px;top:26px;bottom:2px;width:2px;background:#e7e9ee}
+.gp-step--done:not(:last-child)::before{background:#9fe0c4}
+.gp-step strong{display:block;font-size:14px;color:#30384a}
+.gp-step--pending strong,.gp-step--skipped strong{color:#9aa3b2}
+.gp-step .cell-sub{display:block;margin-top:2px}
+.gp-dot{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;flex-shrink:0;border:2px solid #dfe3ea;background:#fff;color:#fff;position:relative;z-index:1}
+.gp-dot--done{background:#16a36a;border-color:#16a36a}
+.gp-dot--active{background:#6c5ce7;border-color:#6c5ce7;box-shadow:0 0 0 5px #6c5ce722}
+.gp-dot--failed{background:#d6334e;border-color:#d6334e}
+.gp-dot--skipped{border-style:dashed}
+.gp-board{border:1px solid var(--line);border-radius:12px;padding:12px;background:#fafbfd;min-width:0}
+.gp-board__head{display:flex;align-items:center;gap:8px;margin-bottom:8px;color:#4d45b8}
+.gp-board__head .cell-sub{margin-left:auto}
+.gp-board__empty{padding:22px 4px;text-align:center}
+.gp-modules{list-style:none;margin:0;padding:0;display:grid;gap:6px;max-height:420px;overflow:auto}
+.gp-module{display:flex;align-items:flex-start;gap:10px;padding:8px 10px;border-radius:9px;background:#fff;border:1px solid #eceef3;transition:border-color .3s,background .3s}
+.gp-module__icon{width:22px;height:22px;border-radius:7px;display:grid;place-items:center;flex-shrink:0;background:#f0f2f7;color:#8a93a6}
+.gp-module__body{min-width:0}
+.gp-module__body strong{display:block;font-size:13px;color:#30384a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gp-module--lessons,.gp-module--quiz{border-color:#cfc9ff;background:#f7f6ff}
+.gp-module--lessons .gp-module__icon,.gp-module--quiz .gp-module__icon{background:#6c5ce7;color:#fff}
+.gp-module--done .gp-module__icon{background:var(--green-bg);color:#0f7a4d}
+.gp-module--fallback{border-color:#ffd6a0;background:#fffaf2}
+.gp-module--fallback .gp-module__icon{background:var(--orange-bg);color:#9a5a0e}
+@keyframes gp-pulse{0%,100%{box-shadow:0 0 0 0 #6c5ce755}50%{box-shadow:0 0 0 10px #6c5ce700}}
+@keyframes gp-flow{to{background-position:-200% 0}}
+@media(max-width:900px){.gen-progress__grid{grid-template-columns:1fr}.gen-progress__head{flex-wrap:wrap}}
+@media(prefers-reduced-motion:reduce){.gen-progress__icon,.gen-progress__bar div{animation:none!important}}
 @media(max-width:760px){
+  .duration-options{grid-template-columns:1fr}
   .glass-card{padding:36px 24px 26px}
   .glass-card__brand{display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:18px;font-weight:700}
   .glass-card h2{font-size:30px}
 }
+
+/* Employee accounts created by HR (invite employee) */
+.invite-list{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:10px}
+.invite-item{display:flex;gap:16px;align-items:flex-start;padding:14px 16px;border:1px solid var(--line);border-radius:10px}
+.invite-item__info{flex:1;min-width:0;display:grid;gap:4px}
+.invite-item__top{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.invite-item__line{display:flex;align-items:center;gap:5px;font-size:13px;color:var(--muted)}
+
+/* Department learning path exploration */
+.explore-badges{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.explore-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.explore-stage{margin:14px 0 0}
+.explore-stage h4{display:flex;align-items:center;gap:6px;margin:0 0 8px;font-size:14px;color:#4d45b8}
+.explore-module{display:grid;gap:2px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;margin-bottom:8px}
+.explore-module ul{margin:6px 0 0;padding-left:18px;font-size:13.5px;color:#505a6d}
+.learning-due{font-size:13px;color:var(--muted)}
+.learning-due.is-overdue{color:#c43d55;font-weight:600}
+
+.glass-float input:-webkit-autofill, .glass-float input:-webkit-autofill:hover, .glass-float input:-webkit-autofill:focus, .glass-float input:-webkit-autofill:active { transition: background-color 5000s ease-in-out 0s; -webkit-text-fill-color: #fff !important; text-shadow: none !important; caret-color: #fff; }
+
+/* Create account from CV form: 2 equal columns in modal (minmax 0 prevents overflow),
+   ensuring the 3rd field does not span the entire row unlike default .form-grid */
+.cv-modal{display:grid;grid-template-columns:minmax(0,1fr);gap:14px}
+.cv-form{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+.cv-form label:nth-child(3){grid-column:auto}
+.cv-form input,.cv-form select,.cv-form textarea{width:100%;min-width:0;box-sizing:border-box}
+@media (max-width:640px){.cv-form{grid-template-columns:minmax(0,1fr)}}

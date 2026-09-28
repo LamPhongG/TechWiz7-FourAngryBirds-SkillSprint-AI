@@ -1,17 +1,10 @@
-import { Component } from "react";
+import React, { Component } from "react";
 import { useLocation } from "react-router-dom";
 import { en } from "../locales/en";
-import { vi } from "../locales/vi";
 
-// Nằm ngoài LanguageProvider (provider cũng có thể là chỗ lỗi) nên tự đọc ngôn ngữ đã lưu
+// Outside LanguageProvider (which itself might fail), so read directly from en
 function text(key) {
-  let lang = "vi";
-  try {
-    if (localStorage.getItem("app_lang") === "en") lang = "en";
-  } catch {
-    // Storage bị chặn — dùng tiếng Việt
-  }
-  return (lang === "en" ? en : vi)[key] ?? en[key] ?? key;
+  return en[key] ?? key;
 }
 
 async function resetDemoData() {
@@ -19,7 +12,7 @@ async function resetDemoData() {
     Object.keys(localStorage).filter(k => k.startsWith("skillsprint.")).forEach(k => localStorage.removeItem(k));
     sessionStorage.clear();
   } catch {
-    // Storage bị chặn — không có gì để xoá
+    // Storage blocked — nothing to clear
   }
   await new Promise(resolve => {
     if (typeof indexedDB === "undefined") return resolve();
@@ -61,8 +54,9 @@ class Boundary extends Component {
   }
 }
 
-/** Bắt lỗi render để không trắng trang; chuyển sang trang khác thì thử render lại từ đầu */
+/** Catches render errors to prevent white-screen crashes; re-attempts render on route navigation */
 export default function ErrorBoundary({ children, inline = false }) {
   const { pathname } = useLocation();
   return <Boundary key={pathname} inline={inline}>{children}</Boundary>;
 }
+

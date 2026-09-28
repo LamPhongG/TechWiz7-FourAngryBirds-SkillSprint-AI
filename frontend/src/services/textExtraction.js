@@ -1,6 +1,6 @@
-// Trích xuất văn bản trong trình duyệt khi chưa có backend.
-// PDF: pdf.js (giữ số trang). DOCX: mammoth → HTML để giữ heading theo style Word.
-// Thư viện được import động để không làm nặng bundle của các trang không dùng tới.
+// Browser-mode text extraction when operating without backend.
+// PDF: pdf.js (preserves page numbers). DOCX: mammoth -> HTML to preserve headings according to Word styles.
+// Libraries are loaded dynamically so they don't bloat pages that do not need them.
 
 let pdfjsPromise = null;
 
@@ -18,7 +18,7 @@ async function loadPdfjs() {
   return pdfjsPromise;
 }
 
-// Ghép các text item của một trang thành dòng; pdf.js đánh dấu xuống dòng bằng hasEOL
+// Concatenate text items on a page into lines; pdf.js flags line breaks with hasEOL
 function pageText(content) {
   let out = "";
   for (const item of content.items) {
@@ -73,7 +73,7 @@ async function extractDocx(blob, onProgress) {
   }
   if (current.text || current.heading) blocks.push(current);
   onProgress?.(1);
-  // DOCX không có khái niệm trang cố định — page để null, trích dẫn dùng heading/section
+  // DOCX has no concept of fixed physical pages — page is null, citations use heading/section
   return { blocks, pageCount: null };
 }
 

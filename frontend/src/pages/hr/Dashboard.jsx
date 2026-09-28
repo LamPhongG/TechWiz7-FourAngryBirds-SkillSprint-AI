@@ -67,7 +67,7 @@ export default function HrDashboard() {
           {published.length === 0 ? <p className="cell-sub">{t("no_published_paths")}</p> : (
             <ul className="dept-list">
               {DEPARTMENTS.map(d => {
-                const list = published.filter(p => p.published_to.departments.includes(d));
+                const list = published.filter(p => p.published_to?.departments.includes(d));
                 if (!list.length) return null;
                 return (
                   <li key={d}>

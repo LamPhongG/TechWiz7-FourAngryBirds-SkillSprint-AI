@@ -5,13 +5,13 @@ import { findCatalogEntry } from "../utils/documentValidation";
 import { findQuoteInChunks } from "../utils/chunker";
 
 /**
- * Đối chiếu exact_quote với nội dung đã trích xuất của tài liệu trong kho.
+ * Match exact_quote against extracted text of documents in store.
  * @returns {{state: "found"|"not_found"|"not_processed"|"not_in_repo"|"no_quote", chunk?: object}}
  */
 function useQuoteCheck(reference) {
   const { documents, chunksByDocId } = useDocuments();
   if (!reference?.exact_quote) return { state: "no_quote" };
-  // Ưu tiên bản đang hiệu lực; không có thì dùng bản mới nhất của mã đó
+  // Prefer active version; fallback to latest version of matching code
   const candidates = documents.filter(d => d.code === reference.doc);
   const doc = candidates.find(d => d.status === "active") || candidates[0];
   if (!doc) return { state: "not_in_repo" };
@@ -28,7 +28,7 @@ function QuoteCheck({ reference }) {
   const check = useQuoteCheck(reference);
   const tone = CHECK_TONE[check.state];
   const Icon = tone === "ok" ? CircleCheck : CircleAlert;
-  // DOCX/TXT không có số trang — hiện heading của chunk thay cho trang
+  // DOCX/TXT lack page numbers — display chunk heading instead
   const text = check.state !== "found"
     ? t(`quote_${check.state}`)
     : check.chunk.page != null
@@ -38,9 +38,9 @@ function QuoteCheck({ reference }) {
 }
 
 /**
- * Hiển thị source_reference theo Rules mục 4: tài liệu, mục, trang và câu trích nguyên văn.
+ * Displays source_reference per Rule section 4: document, section, page, and exact quote.
  * @param {{doc: string, section?: string, page?: number|null, exact_quote?: string}} reference
- * @param {boolean} verify  có đối chiếu câu trích với kho tài liệu không
+ * @param {boolean} verify  whether to verify quote against document repository
  */
 export default function Citation({ reference, verify = true, compact = false }) {
   const { t, pick } = useLanguage();

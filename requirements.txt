@@ -1,0 +1,30 @@
+# Dependencies for the src/ pipeline (document ingestion, GenAI generation, rule engine,
+# comparison/security checks) and its tests. Confirmed by grepping every import in src/, tests/
+# and hidden_test_ready/ — nothing here is unused.
+#
+# The web application (FastAPI + SQLAlchemy + Postgres + JWT auth) originally planned for this
+# root requirements.txt (WBS Phase 1) was never built here; it was superseded by the separate,
+# more complete backend/ + frontend/ app, which has its own requirements.txt. Do not re-add
+# fastapi/uvicorn/sqlalchemy/psycopg/alembic/passlib/python-jose/etc. here — see backend/.
+
+# Document processing
+# 1.24.3 has no prebuilt wheel for Python 3.13 and fails to build from source on some machines
+# (missing local mupdf source download); 1.28.2 (same version backend/requirements.txt uses) ships
+# a prebuilt wheel and installs cleanly.
+PyMuPDF==1.28.2
+python-docx==1.1.2
+
+# Data validation
+# 2.7.1's pydantic-core has no prebuilt wheel for Python 3.13 and fails to build from source
+# (PyO3 0.21.1 does not support Python 3.13); 2.13.5 (same version backend/requirements.txt uses)
+# ships a prebuilt wheel.
+pydantic==2.13.5
+python-dotenv==1.0.1
+
+# Google GenAI SDK (Pipeline 1)
+# Note: google-generativeai is the stable SDK. Migrate to google-genai when stable.
+google-generativeai==0.6.0
+
+# Testing
+pytest==8.2.0
+pytest-cov==5.0.0

@@ -1,8 +1,12 @@
-# Sample Documents — Phase 1 (DOC-01 → DOC-10, RD-01 → RD-10)
+# Company Document Dataset & Sample Documents (DOC-01 → DOC-28, RD-01 → RD-10)
 
-Source drafts for the FourAngryBirds EdTech & HR Solutions JSC document set defined in
-[`frontend/src/data/company.js`](../frontend/src/data/company.js) (`DOCUMENT_CATALOG`).
-DOC-11 → DOC-20 are added in Phase 2 per the WBS.
+This directory contains the dataset of corporate documents required by **Section 3: Company Document Dataset** of the SkillSprint AI SRS:
+
+- `policies/`: Company policies (e.g. Leave Policy, Data Protection, Code of Conduct).
+- `sops/`: Standard Operating Procedures for various operations.
+- `role_descriptions/`: Official role expectations and competencies.
+- `conflict_cases/`: Documents containing conflicting rules for contradiction detection testing.
+- `adversarial/`: Adversarial documents with prompt injections or security traps.
 
 `RD-01` → `RD-10` are a second set: one Role Description per role in `role_matrix/role_matrix.csv`
 (10 roles), consolidating the policy/SOP clauses scattered across DOC-01→DOC-10 into a single

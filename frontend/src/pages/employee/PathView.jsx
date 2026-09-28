@@ -6,7 +6,7 @@ import { useEnrollment } from "../../contexts/EnrollmentContext";
 import { useMyPaths } from "../../hooks/useMyPaths";
 import { moduleProgress, pathProgress, stageUnlocked } from "../../utils/progress";
 
-/** Lộ trình của nhân viên: các giai đoạn theo thứ tự, giai đoạn sau mở khi hoàn thành giai đoạn trước */
+/** Employee learning path: sequential stages, subsequent stage unlocks upon completion of prior stage */
 export default function PathView() {
   const { id } = useParams();
   const navigate = useNavigate();

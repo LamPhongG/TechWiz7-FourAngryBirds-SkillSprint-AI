@@ -1,15 +1,15 @@
-// Kiểm định lộ trình (luồng Ground Truth) — thuần JavaScript, không gọi AI.
-// Ba câu hỏi Reviewer cần trả lời, mỗi câu một nhóm kiểm tra:
-//   1. Đúng kiến thức? → mỗi bài học / nhiệm vụ / câu hỏi phải trích được nguyên văn từ tài liệu gốc
-//   2. Đúng luồng?     → thứ tự giai đoạn, nền tảng trước nghiệp vụ, học phần có bài học và bài kiểm tra
-//   3. Đúng chức năng? → Coverage Score theo Role Requirement Matrix — do Pipeline 2 (Python backend)
-//      tính và trả về trong path.coverage; frontend chỉ hiển thị, không tự tính
-// Cộng thêm sàng lọc prompt injection trên nội dung sẽ đến tay nhân viên.
+// Learning path verification (Ground Truth pipeline) — pure JavaScript, no AI calls.
+// Three core questions for reviewers, one check group each:
+//   1. Grounded Knowledge? -> Every lesson / task / quiz question must cite source verbatim
+//   2. Correct Flow?        -> Stage order, foundations before department ops, modules have lessons and quizzes
+//   3. Functionality/Coverage? -> Coverage Score against Role Requirement Matrix (from Pipeline 2)
+// Plus prompt injection screening on all learner-facing content.
 import { STAGE_TEMPLATES } from "../data/company";
 import { findQuoteInChunks, normalizeForMatch } from "./chunker";
 import { scanChunks } from "./injectionScan";
 
-export const COVERAGE_THRESHOLDS = { manualBelow: 0.6, warningBelow: 0.85 };
+// Verified only when 100% mandatory requirements covered (SRS 1.2, NFR 4)
+export const COVERAGE_THRESHOLDS = { manualBelow: 0.6, warningBelow: 1 };
 export const MIN_REASON_LENGTH = 10;
 
 const CRITICAL_KNOWLEDGE = new Set(["hallucination", "contradiction", "source_missing"]);
@@ -23,7 +23,7 @@ function findDoc(ref, documents) {
     || null;
 }
 
-/** Liệt kê mọi mục có nội dung kiến thức kèm trích dẫn của nó */
+/** Enumerate all knowledge items with their source citations */
 function knowledgeItems(path) {
   const items = [];
   for (const stage of path.stages || []) {
@@ -50,7 +50,7 @@ export function checkKnowledge(path, { documents, chunksByDocId }) {
     if (!chunks?.length) return { ...entry, status: "pending", chunk: null, doc };
     const chunk = findQuoteInChunks(ref.exact_quote, chunks, ref.page);
     if (!chunk) return { ...entry, status: "hallucination", chunk: null, doc };
-    // Đáp án đúng phải có trong câu trích — nếu không, câu hỏi đang chấm theo một điều tài liệu không nói
+    // Correct answer must appear in quoted text — otherwise quiz tests unsourced claims
     if (entry.kind === "quiz") {
       const correct = entry.item.options?.[entry.item.answer];
       if (correct == null || !normalizeForMatch(ref.exact_quote).includes(normalizeForMatch(correct))) {
@@ -81,7 +81,10 @@ export function checkFlow(path) {
   if (modules.length === 0) issues.push({ severity: "error", key: "flow_no_modules" });
 
   const docSeen = new Map();
+  // Teach before testing: accumulated chunk IDs taught up to current module in learning sequence
+  const taught = new Set();
   for (const { m } of modules) {
+    for (const l of m.lessons) [...(l.source_chunks || []), l.source_reference?.chunk_id].forEach(c => c && taught.add(c));
     const title = m.titleEn || m.title;
     if (m.kind !== "assessment" && m.lessons.length === 0) issues.push({ severity: "error", key: "flow_module_empty", vars: { module: title }, module_id: m.id });
     if (m.kind !== "assessment" && m.quiz.length === 0) issues.push({ severity: "warning", key: "flow_no_quiz", vars: { module: title }, module_id: m.id });
@@ -90,13 +93,26 @@ export function checkFlow(path) {
         issues.push({ severity: "error", key: "flow_quiz_invalid", vars: { module: title }, module_id: m.id });
       }
     }
+    // Without completion criteria, task completion cannot be verified;
+    // unsourced tasks are caught by knowledge check (source_missing)
+    for (const task of m.tasks) {
+      if (!String(task.completion_criteria || "").trim()) {
+        issues.push({ severity: "error", key: "flow_task_no_criteria", vars: { module: title, task: task.id }, module_id: m.id });
+      }
+    }
+    for (const item of [...m.tasks, ...m.quiz]) {
+      const chunkId = item.source_reference?.chunk_id;
+      if (chunkId && !taught.has(chunkId)) {
+        issues.push({ severity: "error", key: "flow_untaught_item", vars: { module: title, item: item.id }, module_id: m.id });
+      }
+    }
     if (m.doc_code) {
       if (docSeen.has(m.doc_code)) issues.push({ severity: "warning", key: "flow_duplicate_doc", vars: { doc: m.doc_code }, module_id: m.id });
       docSeen.set(m.doc_code, true);
     }
   }
 
-  // Kiến thức nền tảng (sổ tay, chính sách toàn công ty) phải học trước nghiệp vụ phòng ban
+  // Foundational knowledge (handbook, company-wide policies) must be taught before department-specific SOPs
   const firstSpecific = modules.find(x => x.m.kind !== "assessment" && x.m.tier >= 3);
   if (firstSpecific) {
     for (const { m, si } of modules) {
@@ -114,29 +130,30 @@ export function checkFlow(path) {
 }
 
 /**
- * Kết quả "đúng chức năng" do backend trả về: { score, requiredDocs: [{ code, covered }], topics: [{ id, label, covered, matchedKeyword }] }.
- * Dữ liệu sai dạng coi như chưa có để không hiển thị điểm không đáng tin.
+ * Functional coverage result returned by backend: { score, requiredDocs, topics }.
+ * Invalid data treated as null to avoid displaying untrustworthy scores.
  */
 function backendCoverage(path) {
   const c = path.coverage;
+  if (c && c.counts?.required === 0) return { ...c, score: null, matrixEmpty: true, requiredDocs: [], topics: [] };
   if (!c || typeof c.score !== "number" || c.score < 0 || c.score > 1) return null;
   return { ...c, requiredDocs: Array.isArray(c.requiredDocs) ? c.requiredDocs : [], topics: Array.isArray(c.topics) ? c.topics : [] };
 }
 
-/** Nội dung sẽ hiển thị cho nhân viên không được chứa câu lệnh tấn công */
+/** Content visible to employees must not contain injection commands */
 function checkInjection(path) {
   const pseudo = knowledgeItems(path).map(e => ({
     chunk_id: e.id,
     page: e.source_reference?.page ?? null,
-    content: e.kind === "lesson" ? `${e.item.title}\n${e.item.content}` : e.kind === "task" ? e.item.title : [e.item.question, ...(e.item.options || [])].join("\n"),
+    content: e.kind === "lesson" ? `${e.item.title}\n${e.item.content}` : e.kind === "task" ? `${e.item.title}\n${e.item.completion_criteria || ""}` : [e.item.question, ...(e.item.options || [])].join("\n"),
   }));
   return scanChunks(pseudo);
 }
 
 /**
- * Chạy toàn bộ kiểm tra và phân loại trạng thái cuối.
+ * Run full verification suite and classify final status.
  * @returns {{knowledge, flow, coverage, injection, final_status, reasons, blocking}}
- *   blocking = true khi còn lỗi không được phép phát hành (sai kiến thức, injection, lỗi cấu trúc)
+ *   blocking = true when critical errors prevent publication (hallucination, injection, flow errors)
  */
 export function runPathChecks(path, { documents, chunksByDocId }) {
   const knowledge = checkKnowledge(path, { documents, chunksByDocId });
@@ -156,8 +173,9 @@ export function runPathChecks(path, { documents, chunksByDocId }) {
   if (critical) blockingReasons.push({ key: "reason_knowledge_critical", vars: { n: critical } });
   if (injection.length) blockingReasons.push({ key: "reason_injection_content", vars: { n: injection.length } });
   if (flowErrors) blockingReasons.push({ key: "reason_flow_errors", vars: { n: flowErrors } });
-  // Chưa có kết quả từ backend: không chặn duyệt, nhưng không được coi là Verified
-  if (score == null) warnings.push({ key: "reason_coverage_pending" });
+  // Backend coverage missing: does not block review, but cannot be classified as Verified
+  if (coverage?.matrixEmpty) manual.push({ key: "reason_matrix_empty" });
+  else if (score == null) warnings.push({ key: "reason_coverage_pending" });
   else if (score < COVERAGE_THRESHOLDS.manualBelow) manual.push({ key: "reason_low_coverage", vars: { score: Math.round(score * 100), min: COVERAGE_THRESHOLDS.manualBelow * 100 } });
   else if (score < COVERAGE_THRESHOLDS.warningBelow) warnings.push({ key: "reason_medium_coverage", vars: { score: Math.round(score * 100), min: COVERAGE_THRESHOLDS.warningBelow * 100 } });
   if (warnKnowledge) warnings.push({ key: "reason_knowledge_warning", vars: { n: warnKnowledge } });

@@ -1,6 +1,6 @@
-// Kho tài liệu phía trình duyệt (IndexedDB)
-// Metadata, nội dung file và kết quả chunk lưu ở 3 object store riêng để việc liệt kê không phải đọc blob.
-// Khi có backend, thay module này bằng các lời gọi API cùng chữ ký hàm.
+// Browser-side document store (IndexedDB)
+// Metadata, file content, and chunk extraction results are stored in 3 separate object stores so listing does not read blobs.
+// Used when operating without backend; backend mode is handled via useBackendDocuments (contexts/DocumentsContext.jsx).
 const DB_NAME = "skillsprint-ai";
 const DB_VERSION = 2;
 const META_STORE = "documents";
@@ -21,13 +21,13 @@ function openDb() {
       const db = request.result;
       if (!db.objectStoreNames.contains(META_STORE)) db.createObjectStore(META_STORE, { keyPath: "id" });
       if (!db.objectStoreNames.contains(FILE_STORE)) db.createObjectStore(FILE_STORE, { keyPath: "id" });
-      // v2: kết quả trích xuất (chunks + cờ injection) theo id tài liệu
+      // v2: extraction results (chunks + injection flags) indexed by document ID
       if (!db.objectStoreNames.contains(CHUNK_STORE)) db.createObjectStore(CHUNK_STORE, { keyPath: "id" });
     };
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
   });
-  // Cho phép thử mở lại ở lần gọi sau nếu lần này lỗi
+  // Allow retry on subsequent calls if opening failed this time
   dbPromise.catch(() => { dbPromise = null; });
   return dbPromise;
 }
@@ -48,7 +48,7 @@ export async function listDocuments() {
   return request.result || [];
 }
 
-// Lưu nhiều tài liệu trong một transaction: hoặc lưu hết, hoặc không lưu gì
+// Save multiple documents in a single transaction: either all succeed or none are committed
 export async function saveDocuments(entries) {
   const db = await openDb();
   const tx = db.transaction([META_STORE, FILE_STORE], "readwrite");
@@ -76,7 +76,7 @@ export async function deleteDocument(id) {
   await done(tx);
 }
 
-// Cập nhật metadata và kết quả xử lý trong cùng transaction để hai phần không lệch nhau
+// Update metadata and processing results in the same transaction to keep them synchronized
 export async function saveProcessing(id, metaPatch, result = null) {
   const db = await openDb();
   const tx = db.transaction([META_STORE, CHUNK_STORE], "readwrite");

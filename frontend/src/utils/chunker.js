@@ -1,23 +1,23 @@
-// Chia văn bản đã trích xuất thành chunk theo heading/section.
-// Output khớp contract của backend (WBS Phase 1):
+// Splits extracted text into chunks by heading/section.
+// Matches backend contract (WBS Phase 1):
 //   { doc_id, chunk_id, section_id, heading, page, content }
-// Hàm thuần — không phụ thuộc trình duyệt để test được bằng Vitest.
+// Pure function — browser-independent for Vitest testing.
 
 export const MAX_CHUNK_CHARS = 1200;
 
-// Heading phổ biến trong tài liệu chính sách: "1.", "2.3 Title", "Section 4", "Điều 5", "Chương II", markdown "#"
+// Common headings in policy documents: "1.", "2.3 Title", "Section 4", "Article 5", "Chapter II", markdown "#"
 const HEADING_PATTERNS = [
   /^#{1,6}\s+\S/,
-  /^(\d+(\.\d+){0,3})[.)]?\s+\S.{0,100}$/,
-  /^(section|chapter|part|article|appendix)\s+[\dIVXLC]+\b/i,
-  /^(điều|chương|mục|phần|phụ lục)\s+[\dIVXLC]+\b/i,
+  // Numbered headings: start with capital letter, no sentence breaks, max 80 characters after number.
+  /^(\d+(\.\d+){0,3})[.)]?\s+(?!.*[.!?]\s)\p{Lu}.{0,79}$/u,
+  /^(section|chapter|part|article|appendix|điều|chương|phần|phụ lục)\s+[\dIVXLC]+\b/iu,
 ];
 
 export function isHeadingLine(line) {
   const text = line.trim();
   if (!text || text.length > 120) return false;
   if (HEADING_PATTERNS.some(p => p.test(text))) return true;
-  // Dòng ngắn viết hoa toàn bộ (tiêu đề in hoa trong PDF) — cần ít nhất 2 chữ cái để loại số trang, ký hiệu
+  // Uppercase headings in PDF: at least 4 letters, max 80 chars, uppercase, no trailing punctuation
   const letters = text.replace(/[^\p{L}]/gu, "");
   return letters.length >= 4 && text.length <= 80 && letters === letters.toUpperCase() && !/[.,;:]$/.test(text);
 }
@@ -25,10 +25,9 @@ export function isHeadingLine(line) {
 const cleanHeading = (line) => line.trim().replace(/^#{1,6}\s+/, "");
 
 /**
- * Chia các khối văn bản thành chunk.
+ * Splits document text blocks into chunks.
  * @param {string} docId
  * @param {Array<{page: number|null, text: string, heading?: string}>} blocks
- *   Mỗi khối là một trang (PDF) hoặc một đoạn đã biết heading (DOCX).
  * @returns {Array<{doc_id, chunk_id, section_id, heading, page, content}>}
  */
 export function chunkBlocks(docId, blocks, { maxChars = MAX_CHUNK_CHARS } = {}) {
@@ -75,8 +74,8 @@ export function chunkBlocks(docId, blocks, { maxChars = MAX_CHUNK_CHARS } = {}) 
   return chunks;
 }
 
-// Gom dòng thành đoạn (ngăn bởi dòng trống), rồi gom đoạn đến khi chạm maxChars.
-// Một đoạn quá dài thì cắt theo câu để không chunk nào vượt giới hạn quá nhiều.
+// Group lines into paragraphs (delimited by blank lines), then aggregate paragraphs up to maxChars.
+// Long paragraphs are split by sentences so chunks don't exceed the limit.
 function splitSection(parts, maxChars) {
   const paragraphs = [];
   let para = null;
@@ -107,7 +106,7 @@ function splitLong(paragraph, maxChars) {
   let text = "";
   for (const s of sentences) {
     if (text && text.length + s.length > maxChars) { out.push({ page: paragraph.page, text: text.trim() }); text = ""; }
-    // Câu đơn dài hơn giới hạn (bảng, danh sách không dấu chấm) — cắt cứng theo ký tự
+    // Single sentence exceeding limit (tables, unpunctuated lists) — hard split by char length
     if (s.length > maxChars) {
       for (let i = 0; i < s.length; i += maxChars) out.push({ page: paragraph.page, text: s.slice(i, i + maxChars).trim() });
       continue;
@@ -119,8 +118,8 @@ function splitLong(paragraph, maxChars) {
 }
 
 /**
- * CSV: mỗi chunk gồm dòng tiêu đề cột + tối đa `rowsPerChunk` dòng dữ liệu,
- * để chunk nào cũng tự đọc hiểu được mà không cần chunk trước.
+ * CSV: each chunk consists of header row + up to `rowsPerChunk` data rows,
+ * ensuring each chunk is self-contained without needing prior context.
  */
 export function chunkCsv(docId, text, { rowsPerChunk = 25 } = {}) {
   const lines = String(text).split(/\r?\n/).filter(l => l.trim());
@@ -142,7 +141,7 @@ export function chunkCsv(docId, text, { rowsPerChunk = 25 } = {}) {
   return chunks;
 }
 
-// Chuẩn hoá khoảng trắng + chữ thường để so khớp trích dẫn với nội dung chunk
+// Normalize whitespace and lowercase for citation matching against chunk content
 export function normalizeForMatch(text) {
   return String(text || "")
     .normalize("NFC")
@@ -155,8 +154,8 @@ export function normalizeForMatch(text) {
 }
 
 /**
- * Tìm chunk chứa nguyên văn câu trích dẫn (exact_quote).
- * @returns {object|null} chunk đầu tiên khớp, ưu tiên chunk cùng trang nếu biết trang
+ * Find chunk containing verbatim quotation (exact_quote).
+ * @returns {object|null} first matching chunk, preferring same page if known
  */
 export function findQuoteInChunks(quote, chunks, page = null) {
   const needle = normalizeForMatch(quote);

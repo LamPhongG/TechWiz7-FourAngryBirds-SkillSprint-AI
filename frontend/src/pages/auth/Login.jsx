@@ -15,13 +15,19 @@ export default function Login() {
   const [note, setNote] = useState(null);
   const [error, setError] = useState("");
 
-  const submit = (e) => {
+  const submit = async (e) => {
     e.preventDefault();
     if (!email.trim() || !password) {
       setError(t("login_error_empty"));
       return;
     }
-    const role = login(email, password, { remember });
+    let role;
+    try {
+      role = await login(email, password, { remember });
+    } catch {
+      setError(t("err_network"));
+      return;
+    }
     if (!role) {
       setError(t("login_error_invalid"));
       return;
@@ -39,11 +45,11 @@ export default function Login() {
 
   return (
     <form className="glass-card" onSubmit={submit} noValidate>
-      <div className="glass-card__brand"><span className="brand-mark"><Sparkles size={16} /></span> SkillSprint AI</div>
+      <div className="glass-card__brand"><span className="brand-mark" style={{ overflow: "hidden" }}><img src="/logonhom.png" alt="Logo" style={{ height: "100%", width: "100%", objectFit: "cover" }} /></span> SkillSprint AI</div>
       <h2>{t("login_title")}</h2>
       <p className="glass-card__subtitle">{t("login_subtitle")}</p>
 
-      {/* placeholder=" " để CSS biết ô đã có chữ (:placeholder-shown) và đẩy nhãn lên mép trên */}
+      {/* placeholder=" " enables CSS :placeholder-shown to float label */}
       <div className="glass-float">
         <input id="login-email" type="email" autoComplete="username" placeholder=" " value={email}
           aria-invalid={!!error} onChange={e => { setEmail(e.target.value); setError(""); }} />
@@ -80,12 +86,14 @@ export default function Login() {
 
       <div className="glass-demo">
         <span>{t("login_demo_accounts")}</span>
-        <div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginTop: "8px" }}>
           {DEMO_ACCOUNTS.map(a => (
-            <button key={a.email} type="button" className="glass-chip" onClick={() => fillDemo(a)}>{t(`role_${a.roleKey}`)}</button>
+            <button key={a.email} type="button" className="glass-chip" onClick={() => fillDemo(a)} title={a.email}>
+              {a.label || t(`role_${a.roleKey}`)}
+            </button>
           ))}
         </div>
-        <small>{t("login_demo_note", { password: DEMO_PASSWORD })}</small>
+        <small style={{ display: "block", marginTop: "8px" }}>{t("login_demo_note", { password: DEMO_PASSWORD })}</small>
       </div>
     </form>
   );

@@ -1,6 +1,6 @@
 import { useLanguage } from "../contexts/LanguageContext";
 
-// Trạng thái kiểm tra kiến thức của từng mục trong lộ trình (utils/pathChecks.js → checkKnowledge)
+// Knowledge check status for each item in the path (utils/pathChecks.js -> checkKnowledge)
 const STATUS_CONFIG = {
   verified: { icon: "✓", tone: "verified", label: "vtag_verified", description: "vtag_verified_desc" },
   outdated_source: { icon: "⚠", tone: "warning", label: "vtag_outdated_source", description: "vtag_outdated_source_desc" },

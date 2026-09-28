@@ -17,6 +17,9 @@ describe("isHeadingLine", () => {
     "Employees must report incidents within 24 hours.",
     "12",
     "A.",
+    // A wrapped PDF line that starts with a number (DOC-02 sample): body text, not a numbered heading
+    "5 days until 31 March of the following year. This document is retained only as a superseded-",
+    "31 December. This rule has been replaced by DOC-01 v2.0 §6, which permits carrying over up to",
     "This line is intentionally long enough that it cannot be a heading because headings are short and this sentence keeps going on.",
   ])("does not treat %j as a heading", line => expect(isHeadingLine(line)).toBe(false));
 });

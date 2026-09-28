@@ -1,14 +1,19 @@
-import { createContext, useCallback, useContext, useMemo, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "../hooks/useAuth";
 import { newId, readJson, STORAGE_KEYS, writeJson } from "../services/localStore";
 import { sanitizeAuditLog, sanitizePaths } from "../services/sanitize";
 import { generateContent } from "../services/pipelineService";
+import { DEFAULT_ONBOARDING_DAYS } from "../data/company";
 import { approvalRule, can, validReason } from "../utils/pathWorkflow";
 import { MIN_REASON_LENGTH } from "../utils/pathChecks";
+import { apiRequest, backendEnabled } from "../services/apiClient";
+import { mapAuditEntry, mapPath } from "../services/apiMappers";
+import { useLanguage } from "./LanguageContext";
 
-// Kho lộ trình + audit log. Mọi thao tác kiểm tra quyền theo vai trò và trạng thái (utils/pathWorkflow),
-// rồi ghi lộ trình và dòng audit trong cùng một lần lưu. Audit log chỉ thêm, không sửa, không xoá.
-// Khi có backend: thay localStorage bằng /paths và /audit-logs, giữ nguyên chữ ký hàm.
+// Learning paths store + audit log, sharing identical function signatures across both modes:
+// - Browser mode: localStorage; all operations enforce role and status permissions (utils/pathWorkflow),
+//   then persist path and audit entry within a single atomic save. Audit log is append-only (no edit/delete).
+// - Backend mode (VITE_API_URL): /paths and /audit-logs; server generates content (Gemini), enforces permissions and audit rules.
 
 const PathsContext = createContext(null);
 
@@ -21,15 +26,27 @@ export class PathError extends Error {
 }
 
 const TITLES = {
-  onboarding: ["Hội nhập", "Onboarding"],
-  promotion: ["Bồi dưỡng thăng chức", "Promotion upskilling"],
+  onboarding: ["Onboarding", "Onboarding"],
+  promotion: ["Promotion upskilling", "Promotion upskilling"],
 };
 
+// Build-time fixed mode, so provider always invokes the same hook
+const usePathSource = backendEnabled() ? useBackendPaths : useBrowserPaths;
+
 export function PathsProvider({ children }) {
+  const source = usePathSource();
+  const value = useMemo(() => ({
+    ...source,
+    getPath: id => source.paths.find(p => p.id === id) || null,
+  }), [source]);
+  return <PathsContext.Provider value={value}>{children}</PathsContext.Provider>;
+}
+
+function useBrowserPaths() {
   const { user } = useAuth();
   const [paths, setPaths] = useState(() => sanitizePaths(readJson(STORAGE_KEYS.paths, [])));
   const [auditLog, setAuditLog] = useState(() => sanitizeAuditLog(readJson(STORAGE_KEYS.auditLog, [])));
-  // Bản mới nhất để các thao tác async (sinh nội dung) không ghi đè thay đổi xảy ra trong lúc chờ
+  // Latest ref prevents asynchronous operations (path generation) from overwriting concurrent changes
   const latest = useRef({ paths, auditLog });
   latest.current = { paths, auditLog };
 
@@ -66,17 +83,20 @@ export function PathsProvider({ children }) {
 
   const logBase = (p) => ({ path_id: p.id, path_title: p.titleEn, revision: p.revision });
 
-  const createPath = useCallback(async ({ role, level, purpose, sourceDocs, processed, prompt }) => {
+  const createPath = useCallback(async ({ role, level, purpose, durationDays, sourceDocs, processed, prompt }) => {
     if (actor?.role !== "hr") throw new PathError("err_action_not_allowed");
     const id = newId("LP");
-    const content = await generateContent({ id, role, level, purpose, sourceDocs, processed, prompt });
+    // Server-aligned: duration only applies to onboarding paths
+    const duration = purpose === "onboarding" ? durationDays || DEFAULT_ONBOARDING_DAYS : null;
+    const content = await generateContent({ id, role, level, purpose, durationDays: duration, sourceDocs, processed, prompt });
     const now = new Date().toISOString();
-    const [vi, en] = TITLES[purpose] || TITLES.onboarding;
+    const [, en] = TITLES[purpose] || TITLES.onboarding;
     const path = {
       id,
-      title: `${vi} — ${role.name}`,
+      title: `${en} — ${role.name}`,
       titleEn: `${en} — ${role.nameEn}`,
       purpose, level,
+      duration_days: duration,
       target: { role_id: role.id, department: role.department },
       sources: sourceDocs.map(d => ({ id: d.id, code: d.code, version: d.version, title: d.title, titleEn: d.titleEn })),
       prompt,
@@ -97,7 +117,7 @@ export function PathsProvider({ children }) {
   const regeneratePath = useCallback(async (id, { role, sourceDocs, processed, prompt }) => {
     const path = get(id);
     guard("regenerate", path);
-    const content = await generateContent({ id, role, level: path.level, purpose: path.purpose, sourceDocs, processed, prompt: prompt ?? path.prompt });
+    const content = await generateContent({ id, role, level: path.level, purpose: path.purpose, durationDays: path.duration_days, sourceDocs, processed, prompt: prompt ?? path.prompt });
     const current = get(id);
     const updated = {
       ...current,
@@ -109,7 +129,7 @@ export function PathsProvider({ children }) {
     commit(replace(updated), { ...logBase(updated), action: "regenerate", status_before: current.status, status_after: current.status, details: { engine: content.engine } });
   }, [commit]);
 
-  /** @param {(path) => path} mutate  trả về bản lộ trình đã sửa; details mô tả thay đổi cho audit */
+  /** @param {(path) => path} mutate  returns updated path object; details describes change for audit */
   const editPath = useCallback((id, mutate, details) => {
     const path = get(id);
     guard("edit", path);
@@ -183,14 +203,147 @@ export function PathsProvider({ children }) {
     commit(replace({ ...path, comments }), null);
   }, [actor, commit]);
 
-  const value = useMemo(() => ({
+  // Browser mode reads synchronously from localStorage; no reload required
+  const refreshPaths = useCallback(() => Promise.resolve(), []);
+
+  return useMemo(() => ({
     paths,
     auditLog,
-    getPath: id => paths.find(p => p.id === id) || null,
-    createPath, regeneratePath, editPath, submitPath, requestChanges, approvePath, archivePath, deletePath, addComment, resolveComment,
-  }), [paths, auditLog, createPath, regeneratePath, editPath, submitPath, requestChanges, approvePath, archivePath, deletePath, addComment, resolveComment]);
+    createPath, regeneratePath, editPath, submitPath, requestChanges, approvePath, archivePath, deletePath, addComment, resolveComment, refreshPaths, loaded: true,
+  }), [paths, auditLog, createPath, regeneratePath, editPath, submitPath, requestChanges, approvePath, archivePath, deletePath, addComment, resolveComment, refreshPaths]);
+}
 
-  return <PathsContext.Provider value={value}>{children}</PathsContext.Provider>;
+// Backend domain errors carry translation key (err_...) -> PathError for unified display across modes
+const JOB_POLL_MS = 700;
+
+function asPathError(e) {
+  return e?.code ? new PathError(e.code, e.vars) : e;
+}
+
+function useBackendPaths() {
+  const { user } = useAuth();
+  const { lang } = useLanguage();
+  const [paths, setPaths] = useState([]);
+  const [auditLog, setAuditLog] = useState([]);
+  // Initial load pending: employee page displays "loading" rather than empty state
+  const [loaded, setLoaded] = useState(false);
+  const latest = useRef(paths);
+  latest.current = paths;
+  // Admins read the audit trail too (SRS Step 49, 51); employees never do.
+  const canReadAudit = ["hr", "reviewer", "admin"].includes(user?.userRole);
+
+  const reloadAudit = useCallback(async () => {
+    if (!canReadAudit) return;
+    const page = await apiRequest("/audit-logs", { query: { limit: 1000 } });
+    setAuditLog(page.items.map(mapAuditEntry));
+  }, [canReadAudit]);
+
+  useEffect(() => {
+    if (!user) {
+      setPaths([]);
+      setAuditLog([]);
+      setLoaded(false);
+      return;
+    }
+    let cancelled = false;
+    // Fetch full path with stages: list, progress tracking, and verification checks require stages
+    apiRequest("/paths", { query: { include_content: true } })
+      .then(list => { if (!cancelled) setPaths(list.map(mapPath)); })
+      .catch(() => { if (!cancelled) setPaths([]); })
+      .finally(() => { if (!cancelled) setLoaded(true); });
+    reloadAudit().catch(() => {});
+    return () => { cancelled = true; };
+  }, [user, reloadAudit]);
+
+  /** Invoke API, update path in local state list, reload audit log */
+  const call = useCallback(async (path, options) => {
+    let result;
+    try {
+      result = await apiRequest(path, options);
+    } catch (e) {
+      throw asPathError(e);
+    }
+    const updated = result ? mapPath(result) : null;
+    if (updated) {
+      setPaths(prev => (prev.some(p => p.id === updated.id) ? prev.map(p => (p.id === updated.id ? updated : p)) : [updated, ...prev]));
+    }
+    reloadAudit().catch(() => {});
+    return updated;
+  }, [reloadAudit]);
+
+  /**
+   * Background generation job: server returns job immediately, frontend polls every JOB_POLL_MS and tracks stages
+   * (sources -> analysis -> outline -> modules -> coverage matrix -> save) via onProgress(job).
+   */
+  const runJob = useCallback(async (startPath, body, onProgress) => {
+    let job;
+    try {
+      job = await apiRequest(startPath, { method: "POST", body });
+      onProgress?.(job);
+      while (job.status === "running") {
+        await new Promise(resolve => setTimeout(resolve, JOB_POLL_MS));
+        job = await apiRequest(`/paths/jobs/${job.id}`);
+        onProgress?.(job);
+      }
+    } catch (e) {
+      throw asPathError(e);
+    }
+    if (job.status === "failed") throw asPathError(job.error);
+    return call(`/paths/${job.path_id}`);
+  }, [call]);
+
+  // allowMissingMandatory: HR opted to exclude mandatory documents; server still generates and flags Reviewer
+  const createPath = useCallback(({ role, level, purpose, durationDays, sourceDocs, prompt, allowMissingMandatory, onProgress }) => runJob("/paths/jobs", {
+    job_position_id: role.id, level, purpose, source_document_ids: sourceDocs.map(d => d.id), prompt, language: lang,
+    duration_days: purpose === "onboarding" ? durationDays : null, allow_missing_mandatory: !!allowMissingMandatory,
+  }, onProgress), [runJob, lang]);
+
+  const regeneratePath = useCallback((id, { sourceDocs, prompt, allowMissingMandatory, onProgress }) => runJob(`/paths/${id}/regenerate/jobs`, {
+    source_document_ids: sourceDocs.map(d => d.id), prompt, language: lang, allow_missing_mandatory: !!allowMissingMandatory,
+  }, onProgress), [runJob, lang]);
+
+  const editPath = useCallback((id, mutate, details) => {
+    const path = latest.current.find(p => p.id === id);
+    if (!path) return Promise.reject(new PathError("err_path_not_found"));
+    const detailStrings = details ? Object.fromEntries(Object.entries(details).map(([k, v]) => [k, String(v)])) : null;
+    return call(`/paths/${id}`, { method: "PATCH", body: { stages: mutate(path).stages, details: detailStrings } });
+  }, [call]);
+
+  const submitPath = useCallback((id, { note }) => call(`/paths/${id}/submit`, { method: "POST", body: { note } }), [call]);
+
+  const requestChanges = useCallback((id, { message }) =>
+    call(`/paths/${id}/request-changes`, { method: "POST", body: { message } }), [call]);
+
+  // Server runs pre-publish verification check; client-side checks are for display
+  const approvePath = useCallback((id, { departments, roles, reason }) =>
+    call(`/paths/${id}/approve`, { method: "POST", body: { departments, job_positions: roles, reason } }), [call]);
+
+  const archivePath = useCallback((id, reason) => call(`/paths/${id}/archive`, { method: "POST", body: { reason } }), [call]);
+
+  const deletePath = useCallback(async (id) => {
+    await call(`/paths/${id}`, { method: "DELETE" });
+    setPaths(prev => prev.filter(p => p.id !== id));
+  }, [call]);
+
+  const addComment = useCallback((id, { text, itemRef = null, replyTo = null }) => call(`/paths/${id}/comments`, {
+    method: "POST",
+    body: { text, item_ref: itemRef ? { id: itemRef.id, label: itemRef.label ?? null } : null, reply_to: replyTo },
+  }), [call]);
+
+  const resolveComment = useCallback((id, commentId, resolved = true) =>
+    call(`/paths/${id}/comments/${commentId}/resolve`, { method: "POST", body: { resolved } }), [call]);
+
+  // Self-enrolling in a path makes it visible: refresh list
+  const refreshPaths = useCallback(async () => {
+    const list = await apiRequest("/paths", { query: { include_content: true } });
+    setPaths(list.map(mapPath));
+  }, []);
+
+  return useMemo(() => ({
+    paths,
+    auditLog,
+    createPath, regeneratePath, editPath, submitPath, requestChanges, approvePath, archivePath, deletePath, addComment, resolveComment, refreshPaths, loaded,
+  }), [paths, auditLog, createPath, regeneratePath, editPath, submitPath, requestChanges, approvePath, archivePath, deletePath, addComment, resolveComment, refreshPaths, loaded]);
 }
 
 function newComment(actor, text, itemRef) {

@@ -1,7 +1,7 @@
-// Sàng lọc Prompt Injection trong nội dung tài liệu (Rules mục 5).
-// Backend (src/security/injection_filter.py) là lớp chặn chính thức trước khi gọi Gemini;
-// bản này chạy ở trình duyệt để HR thấy cảnh báo ngay khi tải lên, và dùng chung
-// định dạng cờ với backend: { chunk_id, page, rule_id, severity, match, excerpt }.
+// Prompt Injection scanner for document content (Rules section 5).
+// Backend (backend/app/core/injection_filter.py) is the official barrier before calling Gemini;
+// this browser counterpart gives HR immediate feedback upon upload, and shares the same
+// flag schema: { chunk_id, page, rule_id, severity, match, excerpt }.
 
 const INJECTION_RULES = [
   { id: "ignore_instructions", severity: "high", pattern: /\b(ignore|disregard|forget|override)\s+(all\s+|any\s+|the\s+)?(previous|prior|above|earlier|preceding|system)\s+(instructions?|prompts?|rules?|directions?)/i },
@@ -18,7 +18,7 @@ const INJECTION_RULES = [
 const EXCERPT_RADIUS = 80;
 
 /**
- * Quét danh sách chunk, trả về mỗi lần khớp một cờ.
+ * Scan chunks and return flagged detections.
  * @param {Array<{chunk_id, page, content}>} chunks
  */
 export function scanChunks(chunks) {

@@ -153,6 +153,7 @@
 
 ---
 
+
 ### PHASE 4 — Ngày 27/09/2026: Hidden Test Ready, Blog & Video Demo
 **Tổng thời gian:** 10 giờ | **Mục tiêu:** Sẵn sàng cho Hidden Test, ấn phẩm truyền thông hoàn chỉnh.
 

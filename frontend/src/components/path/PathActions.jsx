@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { Send, RefreshCw, Trash2, CircleCheck, CircleAlert, MessageSquare, Archive, Loader2 } from "../Icons";
 import { Button, Modal } from "../UI";
 import { FinalStatusBadge } from "./Badges";
+import GenerationProgress from "./GenerationProgress";
+import { backendEnabled } from "../../services/apiClient";
 import { ReasonField } from "./ReasonField";
 import { useLanguage } from "../../contexts/LanguageContext";
 import { usePaths, PathError } from "../../contexts/PathsContext";
@@ -11,7 +13,7 @@ import { DEPARTMENTS, ROLES as JOB_ROLES } from "../../data/company";
 import { approvalRule, can } from "../../utils/pathWorkflow";
 import { formatDateTime } from "../../utils/helpers";
 
-/** Thanh thao tác theo vai trò và trạng thái lộ trình */
+/** Action bar based on user role and path status */
 export default function PathActions({ path, checks, role, basePath }) {
   const { t, tv, pick, locale } = useLanguage();
   const [modal, setModal] = useState(null);
@@ -32,7 +34,7 @@ export default function PathActions({ path, checks, role, basePath }) {
           <span>{t("published_by", { name: path.approval.by?.name, date: formatDateTime(path.approval.at, locale) })}</span>
           <FinalStatusBadge status={path.approval.final_status} />
           <span className="cell-sub">
-            {t("published_to_label")}: {[...path.published_to.departments.map(d => tv(d)), ...path.published_to.roles.map(r => pick(JOB_ROLES.find(x => x.id === r), "name"))].join(", ")}
+            {t("published_to_label")}: {[...(path.published_to?.departments ?? []).map(d => tv(d)), ...(path.published_to?.roles ?? []).map(r => pick(JOB_ROLES.find(x => x.id === r), "name"))].join(", ")}
           </span>
           {path.approval.reason && <em>“{path.approval.reason}”</em>}
         </div>
@@ -94,19 +96,48 @@ function RegenerateModal({ path, onClose }) {
   const { regeneratePath } = usePaths();
   const { activeDocuments, processed } = useDocuments();
   const { run, busy, errorBox } = useRunner();
-  const codes = new Set(path.sources.map(s => s.code));
-  // Dùng phiên bản đang hiệu lực của cùng mã tài liệu — tài liệu mới cập nhật sẽ được lấy vào
-  const docs = activeDocuments.filter(d => codes.has(d.code) && processed[d.id]);
+  const [job, setJob] = useState(null);
+
+  const existingCodes = new Set(path.sources.map(s => s.code));
+  // Find missing mandatory documents from backend coverage check
+  const missingRequiredCodes = (path.coverage?.requiredDocs || [])
+    .filter(d => !d.covered)
+    .map(d => d.code);
+  const allTargetCodes = new Set([...existingCodes, ...missingRequiredCodes]);
+
+  // Use active version of document code - updated documents will be picked up
+  const docs = activeDocuments.filter(d => allTargetCodes.has(d.code) && processed[d.id]);
   const role = JOB_ROLES.find(r => r.id === path.target.role_id);
+  const autoAddedCodes = missingRequiredCodes.filter(c => !existingCodes.has(c));
+
+  // If HR previously omitted mandatory docs: regenerate preserves that choice
+  const omitted = path.generation?.mandatory_omitted || [];
   return (
-    <Modal open title={t("action_regenerate")} onClose={onClose}>
-      <p>{t("regenerate_desc", { n: docs.length })}</p>
-      {path.status === "changes_requested" && <p className="cell-sub">{t("regenerate_keep_comments")}</p>}
+    <Modal open title={t("action_regenerate")} onClose={busy ? () => {} : onClose} width={busy && backendEnabled() ? "720px" : undefined}>
+      {busy && backendEnabled() ? (
+        <GenerationProgress compact job={job} subtitle={t("gp_sources_count", { n: docs.length })} />
+      ) : (
+        <>
+          <p>{t("regenerate_desc", { n: docs.length })}</p>
+          {autoAddedCodes.length > 0 && (
+            <p className="cell-sub" style={{ color: "#6366f1", marginTop: 8, fontWeight: 500 }}>
+              ✦ Automatically supplement missing documents: <strong>{autoAddedCodes.join(", ")}</strong> to achieve 100% coverage.
+            </p>
+          )}
+          {path.coverage?.missing?.length > 0 && autoAddedCodes.length === 0 && (
+            <p className="cell-sub" style={{ color: "#6366f1", marginTop: 8, fontWeight: 500 }}>
+              ✦ The system will inject feedback from Python ({path.coverage.missing.length} unfulfilled requirements) into the prompt for targeted AI completion.
+            </p>
+          )}
+          {path.status === "changes_requested" && <p className="cell-sub">{t("regenerate_keep_comments")}</p>}
+          {omitted.length > 0 && <p className="cell-sub text-warning">{t("regenerate_keeps_omitted", { list: omitted.join(", ") })}</p>}
+        </>
+      )}
       {errorBox}
       <div className="modal-actions">
         <Button variant="secondary" onClick={onClose}>{t("cancel")}</Button>
         <Button disabled={busy || docs.length === 0} icon={busy ? <Loader2 size={15} className="spin" /> : <RefreshCw size={15} />}
-          onClick={() => run(() => regeneratePath(path.id, { role, sourceDocs: docs, processed }), onClose)}>
+          onClick={() => { setJob(null); run(() => regeneratePath(path.id, { role, sourceDocs: docs, processed, allowMissingMandatory: omitted.length > 0, onProgress: setJob }), onClose); }}>
           {t("action_regenerate")}
         </Button>
       </div>

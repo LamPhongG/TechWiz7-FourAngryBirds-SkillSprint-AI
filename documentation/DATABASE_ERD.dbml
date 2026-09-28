@@ -1,0 +1,286 @@
+// =====================================================================
+// SkillSprint AI — Database ERD (DBML for dbdiagram.io)
+// Cuộc thi: TechWiz 7 — Generative AI Powerplay Track
+// Đội thi: Four Angry Birds
+// =====================================================================
+
+// --------------------------------------------------
+// ENUMS
+// --------------------------------------------------
+
+Enum user_role {
+  admin [note: 'Quản trị viên hệ thống (CRUD tài khoản & bảo mật)']
+  hr [note: 'Quản lý nhân sự & đào tạo (Tải tài liệu & sinh lộ trình)']
+  reviewer [note: 'Người thẩm định & phê duyệt lộ trình']
+  employee [note: 'Nhân viên tham gia học tập & làm bài kiểm tra']
+}
+
+Enum processing_status {
+  pending [note: 'Chờ xử lý']
+  processing [note: 'Đang trích xuất & chia chunk']
+  ready [note: 'Đã sẵn sàng làm nguồn sinh AI']
+  failed [note: 'Xử lý lỗi (PDF scan không text, hỏng mã hóa)']
+}
+
+Enum path_status {
+  draft [note: 'Bản nháp đang biên tập']
+  in_review [note: 'Đang chờ Reviewer thẩm định']
+  changes_requested [note: 'Reviewer yêu cầu chỉnh sửa kèm lý do']
+  published [note: 'Đã xuất bản cho nhân viên học']
+  archived [note: 'Đã lưu trữ / hết hiệu lực']
+}
+
+Enum path_level {
+  beginner [note: 'Cơ bản (Novice)']
+  intermediate [note: 'Trung cấp (Developing/Proficient)']
+  advanced [note: 'Nâng cao (Expert)']
+}
+
+Enum path_purpose {
+  onboarding [note: 'Đào tạo hội nhập nhân viên mới']
+  upskilling [note: 'Nâng cao kỹ năng chuyên môn']
+  compliance [note: 'Đào tạo tuân thủ quy định & chính sách']
+  role_transition [note: 'Chuyển đổi vị trí công việc']
+}
+
+Enum final_status {
+  verified [note: 'Đã xác thực hoàn toàn (Match >= 95%)']
+  verified_warning [note: 'Xác thực có cảnh báo (Match >= 85%)']
+  manual_review [note: 'Cần duyệt thủ công do phát hiện mâu thuẫn / bịa đặt']
+}
+
+// --------------------------------------------------
+// TABLES
+// --------------------------------------------------
+
+// 1. Phân hệ Cơ cấu Tổ chức & Người dùng
+Table departments {
+  code varchar(64) [pk, note: 'Mã phòng ban tiếng Anh (Engineering, Sales, HR...)']
+  name varchar(128) [not null, note: 'Tên phòng ban tiếng Việt']
+  name_en varchar(128) [not null, note: 'Tên phòng ban tiếng Anh']
+
+  Note: 'Danh mục các phòng ban trong doanh nghiệp'
+}
+
+Table job_positions {
+  id varchar(64) [pk, note: 'Mã chức danh tiêu chuẩn (support-engineer, sales-exec...)']
+  name varchar(160) [not null, note: 'Tên chức danh tiếng Việt']
+  name_en varchar(160) [not null, note: 'Tên chức danh tiếng Anh']
+  department_code varchar(64) [not null, ref: > departments.code, note: 'Phòng ban trực thuộc']
+
+  Note: '10 vị trí chức danh chuyên môn theo SRS Step 2'
+}
+
+Table users {
+  id varchar(32) [pk, note: 'Mã người dùng (USR-XXXX)']
+  email varchar(254) [unique, not null, note: 'Email đăng nhập duy nhất']
+  password_hash varchar(128) [not null, note: 'Mật khẩu băm Bcrypt']
+  name varchar(128) [not null, note: 'Họ và tên người dùng']
+  user_role user_role [not null, note: 'Phân quyền 4 vai trò']
+  job_title varchar(128) [note: 'Chức danh công việc']
+  department_code varchar(64) [ref: > departments.code, note: 'Phòng ban công tác']
+  job_position_id varchar(64) [ref: > job_positions.id, note: 'Vị trí công việc cụ thể']
+  is_active boolean [not null, default: true, note: 'Soft Delete: false nghĩa là tài khoản đã khóa nhưng dữ liệu DB vẫn giữ']
+  created_at timestamp [not null, default: `now()`]
+
+  Note: 'Tài khoản người dùng 4 vai trò. Áp dụng Soft Delete để bảo toàn lịch sử kiểm toán'
+}
+
+// 2. Phân hệ Tài liệu & Kho tri thức
+Table documents {
+  id varchar(32) [pk, note: 'Mã tài liệu lưu trữ (DV-XXXX)']
+  code varchar(32) [not null, note: 'Mã danh mục chính sách (DOC-01, DOC-02...)']
+  family varchar(96) [not null, note: 'Nhóm tài liệu để quản lý phiên bản (employee-handbook)']
+  version varchar(16) [not null, note: 'Phiên bản (1.0, 2.0)']
+  title varchar(255) [not null, note: 'Tiêu đề tài liệu tiếng Việt']
+  title_en varchar(255) [not null, note: 'Tiêu đề tài liệu tiếng Anh']
+  category varchar(32) [not null, note: 'Loại tài liệu (Handbook, Policy, SOP, FAQ...)']
+  department_code varchar(64) [not null, ref: > departments.code]
+  effective_date date [not null, note: 'Ngày bắt đầu hiệu lực']
+  expiry_date date [note: 'Ngày hết hạn hiệu lực']
+  file_name varchar(255) [not null, note: 'Tên file gốc khi upload']
+  ext varchar(8) [not null, note: 'Định dạng file (pdf, docx)']
+  mime_type varchar(128)
+  size_bytes integer [not null]
+  sha256 varchar(64) [unique, not null, note: 'Mã hash chống tải file trùng lặp']
+  storage_path varchar(512) [not null, note: 'Đường dẫn file vật lý trên server']
+  processing_status processing_status [not null, default: 'pending']
+  processing_engine varchar(32) [note: 'Công cụ trích xuất (PyMuPDF, python-docx)']
+  processing_error varchar(64) [note: 'Mã lỗi nếu xử lý thất bại']
+  page_count integer
+  char_count integer
+  processed_at timestamp
+  uploaded_by_id varchar(32) [not null, ref: > users.id]
+  uploaded_at timestamp [not null, default: `now()`]
+
+  Note: 'Kho tài liệu doanh nghiệp. Hỗ trợ quản lý vòng đời và phiên bản'
+}
+
+Table document_chunks {
+  id integer [pk, increment]
+  document_id varchar(32) [not null, ref: > documents.id]
+  chunk_id varchar(48) [not null, note: 'Mã chunk chuẩn (DOC-01-C0001)']
+  section_id varchar(48) [note: 'Mã mục văn bản']
+  heading varchar(255) [note: 'Tiêu đề phần / điều khoản']
+  page integer [not null, note: 'Số trang gốc trong file PDF/DOCX']
+  position integer [not null, note: 'Thứ tự đoạn trong tài liệu']
+  content text [not null, note: 'Nội dung văn bản đoạn trích']
+
+  Note: 'Các đoạn văn bản đã bóc tách từ tài liệu, làm căn cứ Ground Truth và trích dẫn số trang'
+}
+
+Table injection_flags {
+  id integer [pk, increment]
+  document_id varchar(32) [not null, ref: > documents.id]
+  chunk_id varchar(48) [not null, note: 'Chunk bị phát hiện có câu lệnh tấn công']
+  page integer [note: 'Trang tài liệu phát hiện bẫy']
+  rule_id varchar(64) [not null, note: 'Loại mẫu injection (system_override, dan_mode, ignore_instructions)']
+  severity varchar(16) [not null, default: 'high', note: 'Mức độ nguy hiểm']
+  match text [not null, note: 'Chuỗi khớp mẫu độc hại']
+  excerpt text [not null, note: 'Đoạn trích ngữ cảnh']
+
+  Note: 'Cờ cảnh báo bảo mật Prompt Injection trong tài liệu nhằm bảo vệ LLM'
+}
+
+// 3. Phân hệ Lộ trình Đào tạo & Generative AI
+Table learning_paths {
+  id varchar(32) [pk, note: 'Mã lộ trình (LP-XXXX)']
+  title varchar(255) [not null]
+  title_en varchar(255) [not null]
+  purpose path_purpose [not null, default: 'onboarding']
+  level path_level [not null, default: 'intermediate']
+  target_job_position_id varchar(64) [not null, ref: > job_positions.id]
+  target_department_code varchar(64) [not null, ref: > departments.code]
+  prompt text [note: 'System prompt tùy biến do HR yêu cầu']
+  prompt_version varchar(16) [not null, default: 'v1.0']
+  engine varchar(32) [not null, note: 'gemini hoặc local-draft']
+  model varchar(64) [note: 'gemini-2.5-flash hoặc gemini-1.5-pro']
+  stages json [not null, note: 'Cây JSON hoàn chỉnh: Giai đoạn -> Học phần -> Bài học -> Tasks -> Quiz']
+  excluded_chunks json [note: 'Danh sách các chunk bị loại trừ do chứa injection']
+  coverage json [note: 'Báo cáo Pipeline 2: {score, requiredDocs, topics}']
+  generation json [note: 'Báo cáo Pipeline 1: {tokens, duration, drops, repairs}']
+  status path_status [not null, default: 'draft']
+  revision integer [not null, default: 1]
+  created_by_id varchar(32) [not null, ref: > users.id]
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+  submitted_at timestamp
+  published_at timestamp
+  archived_at timestamp
+  approved_by_id varchar(32) [ref: > users.id]
+  approval_final_status final_status
+  approval_reason text [note: 'Lý do phê duyệt / ghi đè bắt buộc từ Reviewer']
+
+  Note: 'Lộ trình đào tạo Onboarding 90 ngày do AI sinh và Reviewer phê duyệt'
+}
+
+Table path_sources {
+  id integer [pk, increment]
+  path_id varchar(32) [not null, ref: > learning_paths.id]
+  document_id varchar(32) [not null, ref: > documents.id]
+  doc_code varchar(32) [not null]
+  doc_version varchar(16) [not null]
+  position integer [not null, default: 0]
+
+  Note: 'Danh sách các tài liệu nguồn đã được dùng để sinh lộ trình này'
+}
+
+Table path_assignments {
+  id integer [pk, increment]
+  path_id varchar(32) [not null, ref: > learning_paths.id]
+  department_code varchar(64) [ref: > departments.code]
+  job_position_id varchar(64) [ref: > job_positions.id]
+
+  Note: 'Phân quyền gán lộ trình đào tạo cho các phòng ban và vị trí công việc'
+}
+
+Table path_comments {
+  id varchar(32) [pk, note: 'Mã góp ý (CMT-XXXX)']
+  path_id varchar(32) [not null, ref: > learning_paths.id]
+  author_id varchar(32) [not null, ref: > users.id]
+  text text [not null, note: 'Nội dung phản hồi / yêu cầu sửa đổi của Reviewer']
+  item_ref json [note: 'Tham chiếu vị trí học phần hoặc bài học cụ thể']
+  reply_to_id varchar(32) [ref: - path_comments.id, note: 'Phản hồi lại comment khác']
+  resolved boolean [not null, default: false]
+  resolved_by_id varchar(32) [ref: > users.id]
+  created_at timestamp [not null, default: `now()`]
+
+  Note: 'Hội thoại trao đổi và góp ý giữa Reviewer và HR trong quá trình thẩm định lộ trình'
+}
+
+// 4. Phân hệ Học tập & Đánh giá năng lực của Nhân viên
+Table enrollments {
+  id integer [pk, increment]
+  user_id varchar(32) [not null, ref: > users.id]
+  path_id varchar(32) [not null, ref: > learning_paths.id]
+  lessons_read json [not null, note: 'Danh sách các ID bài học nhân viên đã đọc']
+  tasks_done json [not null, note: 'Danh sách các ID nhiệm vụ thực tế đã hoàn thành']
+  started_at timestamp [not null, default: `now()`]
+  completed_at timestamp
+
+  Note: 'Ghi nhận tiến độ học tập thực tế của nhân viên trên từng lộ trình được gán'
+}
+
+Table quiz_attempts {
+  id integer [pk, increment]
+  enrollment_id integer [not null, ref: > enrollments.id]
+  module_id varchar(64) [not null, note: 'Mã học phần làm bài kiểm tra']
+  answers json [not null, note: 'Lựa chọn trả lời của nhân viên']
+  score integer [not null, note: 'Số câu trả lời đúng']
+  total integer [not null, note: 'Tổng số câu hỏi của bài kiểm tra']
+  submitted_at timestamp [not null, default: `now()`]
+
+  Note: 'Lịch sử các lần làm bài kiểm tra trắc nghiệm của nhân viên'
+}
+
+// 5. Phân hệ Truy vết & Nhật ký Kiểm toán
+Table audit_logs {
+  id varchar(32) [pk, note: 'Mã bản ghi kiểm toán (AUD-XXXX)']
+  created_at timestamp [not null, default: `now()`]
+  actor_id varchar(32) [not null, ref: > users.id, note: 'Người thực hiện thao tác']
+  actor_name varchar(128) [not null]
+  actor_role user_role [not null]
+  action varchar(32) [not null, note: 'Tên hành động: generate, submit, approve, reject, override, soft_delete...']
+  path_id varchar(32) [note: 'Mã lộ trình liên quan nếu có']
+  path_title varchar(255)
+  revision integer
+  status_before path_status
+  status_after path_status
+  final_status final_status
+  reason text [note: 'Lý do bắt buộc khi Reviewer ghi đè hoặc phê duyệt']
+  details json [note: 'Dữ liệu chi tiết dạng snapshot phục vụ thanh tra']
+
+  Note: 'Nhật ký kiểm toán bất biến (Append-only) phục vụ thanh tra và truy vết theo SRS'
+}
+
+// --------------------------------------------------
+// TABLE GROUPS (Tổ chức hiển thị trên giao diện dbdiagram.io)
+// --------------------------------------------------
+
+TableGroup organization_and_access {
+  departments
+  job_positions
+  users
+}
+
+TableGroup knowledge_and_documents {
+  documents
+  document_chunks
+  injection_flags
+}
+
+TableGroup learning_paths_and_curricula {
+  learning_paths
+  path_sources
+  path_assignments
+  path_comments
+}
+
+TableGroup learner_progress_and_quizzes {
+  enrollments
+  quiz_attempts
+}
+
+TableGroup audit_and_compliance {
+  audit_logs
+}

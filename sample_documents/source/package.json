@@ -1,0 +1,13 @@
+{
+  "name": "skillsprint-sample-documents",
+  "private": true,
+  "type": "module",
+  "description": "Builds the sample company documents (DOC-*.md) into PDF with headless Chrome",
+  "scripts": {
+    "build": "node build_pdfs.mjs"
+  },
+  "devDependencies": {
+    "marked": "^16.0.0",
+    "puppeteer-core": "^24.0.0"
+  }
+}

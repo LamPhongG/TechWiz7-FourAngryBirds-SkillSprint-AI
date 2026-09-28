@@ -9,7 +9,7 @@ const FINAL_META = {
   manual_review: { tone: "red", icon: ShieldAlert, label: "vtag_manual_review" },
 };
 
-/** Một trong 3 trạng thái kiểm định: Verified / Verified with Warning / Manual Review Required */
+/** One of 3 verification states: Verified / Verified with Warning / Manual Review Required */
 export function FinalStatusBadge({ status, large = false }) {
   const { t } = useLanguage();
   const meta = FINAL_META[status] || FINAL_META.manual_review;
@@ -44,8 +44,9 @@ export function CoverageScore({ score }) {
   );
 }
 
-export function EngineBadge({ engine }) {
+/** fallback: Gemini is configured but this module used local draft (quota exceeded, overload...) — distinct from "Gemini not connected" */
+export function EngineBadge({ engine, fallback = false }) {
   const { t } = useLanguage();
   if (engine === "gemini") return <Badge tone="blue">{t("engine_gemini")}</Badge>;
-  return <Badge tone="orange">{t("engine_local_draft")}</Badge>;
+  return <Badge tone="orange">{t(fallback ? "engine_fallback" : "engine_local_draft")}</Badge>;
 }
